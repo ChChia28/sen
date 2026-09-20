@@ -719,6 +719,94 @@
     font-weight: 400;
   }
 
+  /* ============== EDIT CATEGORY ============== */
+  .ec-preview {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 4px; margin-bottom: 8px;
+  }
+  .ec-preview-icon {
+    width: 56px; height: 56px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    transition: all .2s;
+  }
+  .ec-preview-name {
+    font-size: 18px; font-weight: 600;
+  }
+  .color-picker {
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px;
+    padding: 4px;
+  }
+  .color-picker button {
+    aspect-ratio: 1; border-radius: 50%;
+    transition: all .15s;
+    position: relative;
+  }
+  .color-picker button.active::after {
+    content: ''; position: absolute; inset: -4px;
+    border-radius: 50%;
+    border: 2px solid var(--text-1);
+  }
+  .ec-delete, .ec-reset {
+    width: 100%; padding: 14px;
+    background: #FFE5E5; color: #E14E4E;
+    border-radius: 14px; font-size: 15px; font-weight: 600;
+    margin-top: 24px;
+    transition: all .15s;
+  }
+  .ec-delete:active, .ec-reset:active { transform: scale(.98); }
+  .ec-reset { background: var(--card-2); color: var(--text-2); margin-top: 8px; }
+  .cat-badge-builtin {
+    display: inline-block;
+    font-size: 10px; color: var(--text-3);
+    background: var(--card-2); padding: 2px 6px;
+    border-radius: 6px; margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* Long-press feedback */
+  .cat-pick.long-pressing {
+    transform: scale(.92);
+    opacity: .7;
+  }
+
+  /* ============== CATEGORY MANAGER ============== */
+  .cat-mgr-section {
+    padding: 8px 4px 20px;
+  }
+  .cat-mgr-title {
+    font-size: 13px; font-weight: 600; color: var(--text-2);
+    padding: 12px 4px 8px;
+  }
+  .cat-mgr-list {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .cat-mgr-item {
+    background: var(--card-2); border-radius: 14px;
+    padding: 12px 8px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+    text-align: center;
+    position: relative;
+    transition: all .15s;
+  }
+  .cat-mgr-item:active { transform: scale(.96); }
+  .cat-mgr-item-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .cat-mgr-item-name {
+    font-size: 12px; font-weight: 500;
+    max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cat-mgr-item.custom::before {
+    content: ''; position: absolute; top: 6px; right: 6px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+  }
+
   /* ============== SEARCH ============== */
   .search-input-wrap {
     position: relative;
@@ -1113,7 +1201,7 @@
       <div class="amount-label">金额</div>
       <input class="amount-input" id="amtInput" type="text" inputmode="decimal" placeholder="0.00">
     </div>
-    <div class="section-label">分类</div>
+    <div class="section-label">分类 <span style="font-weight:400; color:var(--text-3); font-size:11px; margin-left:6px;">长按可编辑</span></div>
     <div class="cat-picker" id="catPicker"></div>
     <div class="form-row">
       <label>备注</label>
@@ -1241,7 +1329,7 @@
       <div class="amount-label">金额</div>
       <input class="amount-input" id="peAmt" type="text" inputmode="decimal" placeholder="0.00">
     </div>
-    <div class="section-label">分类</div>
+    <div class="section-label">分类 <span style="font-weight:400; color:var(--text-3); font-size:11px; margin-left:6px;">长按可编辑</span></div>
     <div class="cat-picker" id="peCatPicker"></div>
     <div class="form-row">
       <label>备注</label>
@@ -1254,21 +1342,34 @@
   </div>
 </div>
 
-<!-- Add custom category -->
-<div class="sheet" id="sheetNewCat">
+<!-- Add / Edit category -->
+<div class="sheet" id="sheetEditCat">
   <div class="sheet-handle"></div>
   <div class="sheet-head">
     <button class="sheet-close" data-close>取消</button>
-    <div class="sheet-title">新分类</div>
-    <button class="sheet-save" id="newCatSave">保存</button>
+    <div class="sheet-title" id="ecTitle">新分类</div>
+    <button class="sheet-save" id="ecSave">保存</button>
   </div>
   <div class="form-body">
-    <div class="form-row" style="margin-top:8px;">
-      <label>名称</label>
-      <input type="text" id="newCatName" placeholder="比如 咖啡" maxlength="8">
+    <div class="ec-preview" id="ecPreview">
+      <div class="ec-preview-icon" id="ecPreviewIcon" style="background:#5EC2C222; color:#5EC2C2">💰</div>
+      <div class="ec-preview-name" id="ecPreviewName">分类</div>
     </div>
-    <div class="section-label" style="margin-top: 16px;">选个 emoji</div>
-    <div class="emoji-picker" id="newCatEmoji"></div>
+    <div class="form-row">
+      <label>名称</label>
+      <input type="text" id="ecName" maxlength="8" placeholder="比如 咖啡">
+    </div>
+    <div class="form-row">
+      <label>图标</label>
+      <input type="text" id="ecEmoji" maxlength="15" placeholder="任意 emoji 或字符" style="font-size:20px; text-align:center;">
+    </div>
+    <div style="font-size:11px; color:var(--text-3); padding: 0 4px 6px;">💡 手机: 键盘上有 emoji 按钮 · 桌面: Win+. 或 Ctrl+Cmd+Space</div>
+    <div class="section-label" style="margin-top:8px;">或从下面选</div>
+    <div class="emoji-picker" id="ecSuggest"></div>
+    <div class="section-label" style="margin-top:16px;">颜色</div>
+    <div class="color-picker" id="ecColor"></div>
+    <button class="ec-delete" id="ecDelete" style="display:none;">删除这个分类</button>
+    <button class="ec-reset" id="ecReset" style="display:none;">恢复默认</button>
   </div>
 </div>
 
@@ -1305,19 +1406,28 @@
 </div>
 
 <!-- Settings -->
-<div class="sheet" id="sheetSettings">
+<div class="sheet sheet-full" id="sheetSettings">
   <div class="sheet-handle"></div>
   <div class="sheet-head">
     <button class="sheet-close" data-close>关闭</button>
     <div class="sheet-title">设置</div>
     <span style="width:40px;"></span>
   </div>
-  <div class="form-body">
+  <div class="form-body" style="overflow-y:auto; max-height: calc(92vh - 60px);">
     <div class="section-label" style="margin-top:8px;">货币</div>
     <div class="currency-picker" id="currencyPicker"></div>
+
+    <div class="section-label" style="margin-top:24px;">分类管理 <span style="font-weight:400; color:var(--text-3); font-size:11px; margin-left:6px;">点一下改，或加新的</span></div>
+    <div class="cat-mgr-section">
+      <div class="cat-mgr-title">支出</div>
+      <div class="cat-mgr-list" id="catMgrExpense"></div>
+      <div class="cat-mgr-title" style="margin-top:16px;">收入</div>
+      <div class="cat-mgr-list" id="catMgrIncome"></div>
+    </div>
+
     <div style="font-size:12px; color:var(--text-3); margin: 24px 4px 8px;">关于</div>
-    <div style="font-size:13px; color:var(--text-2); background:var(--card-2); padding:14px 16px; border-radius:14px; line-height:1.7;">
-      <b>Sen</b> · 记账 · v1.2<br>
+    <div style="font-size:13px; color:var(--text-2); background:var(--card-2); padding:14px 16px; border-radius:14px; line-height:1.7; margin-bottom: 40px;">
+      <b>Sen</b> · 记账 · v1.3<br>
       纯本地存储，不上传任何数据。<br>
       加到手机主屏幕就能像 App 一样用。
     </div>
@@ -1355,15 +1465,20 @@ const CATS = {
 const catMap = {};
 [...CATS.expense, ...CATS.income].forEach(c => catMap[c.key] = c);
 const getCat = (name, type='expense') => {
-  const custom = state?.customCats?.[type]?.find(c => c.key === name);
-  if (custom) return custom;
-  return CATS[type].find(c => c.key === name) || catMap[name] || CATS.expense[CATS.expense.length-1];
+  const resolved = catDisplay(name, type);
+  if (resolved) return resolved;
+  return catMap[name] || CATS.expense[CATS.expense.length-1];
 };
 
 /* ============ STATE ============ */
 const STORAGE_KEY = 'jizhang.v1';
 const DEFAULT_SETTINGS = { currency: 'RM', budgets: {} };
-let state = { transactions: [], customCats: { expense: [], income: [] }, settings: {...DEFAULT_SETTINGS} };
+let state = {
+  transactions: [],
+  customCats: { expense: [], income: [] },
+  builtinOverrides: { expense: {}, income: {} },
+  settings: {...DEFAULT_SETTINGS},
+};
 try {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
@@ -1372,6 +1487,9 @@ try {
     state.customCats = loaded.customCats || { expense: [], income: [] };
     if (!state.customCats.expense) state.customCats.expense = [];
     if (!state.customCats.income) state.customCats.income = [];
+    state.builtinOverrides = loaded.builtinOverrides || { expense: {}, income: {} };
+    if (!state.builtinOverrides.expense) state.builtinOverrides.expense = {};
+    if (!state.builtinOverrides.income) state.builtinOverrides.income = {};
     state.settings = { ...DEFAULT_SETTINGS, ...(loaded.settings || {}) };
     if (!state.settings.budgets) state.settings.budgets = {};
   }
@@ -1384,13 +1502,28 @@ function save() {
 const cur = () => state.settings.currency || 'RM';
 const CURRENCIES = ['RM', '$', 'S$', '¥', '€', '£', '฿', '₹', 'Rp', 'HK$', 'NT$', '₩'];
 
-// Get combined built-in + custom categories for a type
+// Apply built-in override on top of default
+function catDisplay(key, type) {
+  const custom = state?.customCats?.[type]?.find(c => c.key === key);
+  if (custom) return { ...custom, isCustom: true };
+  const builtin = CATS[type]?.find(c => c.key === key);
+  if (!builtin) return null;
+  const override = state?.builtinOverrides?.[type]?.[key] || {};
+  return { ...builtin, ...override, isCustom: false };
+}
+
+// Get combined built-in + custom categories for a type (with overrides applied)
 function allCats(type) {
   const builtin = CATS[type];
   const custom = (state.customCats && state.customCats[type]) || [];
-  // Insert customs before the "其他" tile so 其他 stays last
   const other = builtin[builtin.length - 1];
-  return [...builtin.slice(0, -1), ...custom, other];
+  // Resolve each with catDisplay
+  const resolved = [
+    ...builtin.slice(0, -1).map(c => catDisplay(c.key, type)),
+    ...custom.map(c => ({ ...c, isCustom: true })),
+    catDisplay(other.key, type),
+  ];
+  return resolved;
 }
 // Palette for auto-assigning colors to custom cats
 const CAT_PALETTE = ['#5EC2C2','#FFA76B','#FF7EB3','#7FB4FF','#B78FFF','#FF8080','#8BD17C','#F4C15C','#5CC7A3','#F498B0','#B48A6B','#EA80FC','#4DB6AC','#FFB74D','#9575CD'];
@@ -1683,7 +1816,7 @@ function renderChart() {
 }
 
 /* ============ SHEETS ============ */
-const sheets = ['sheetAdd', 'sheetManual', 'sheetImport', 'sheetBackup', 'sheetParsed', 'sheetParsedEdit', 'sheetNewCat', 'sheetSearch', 'sheetBudget', 'sheetSettings', 'sheetMonth', 'sheetTxn'];
+const sheets = ['sheetAdd', 'sheetManual', 'sheetImport', 'sheetBackup', 'sheetParsed', 'sheetParsedEdit', 'sheetEditCat', 'sheetSearch', 'sheetBudget', 'sheetSettings', 'sheetMonth', 'sheetTxn'];
 let sheetStack = [];
 function openSheet(id) {
   $('#sheetMask').classList.add('show');
@@ -1776,17 +1909,26 @@ function renderCatPicker() {
     </button>
   `;
   $$('.cat-pick', container).forEach(el => {
-    el.addEventListener('click', () => {
-      if (el.dataset.new) {
-        openNewCat(manualState.type, (newKey) => {
-          manualState.category = newKey;
-          renderCatPicker();
+    if (el.dataset.new) {
+      el.addEventListener('click', () => {
+        openEditCat({
+          mode: 'new', type: manualState.type,
+          onDone: (newKey) => { manualState.category = newKey; renderCatPicker(); }
         });
-      } else {
-        manualState.category = el.dataset.cat;
+      });
+    } else {
+      const catKey = el.dataset.cat;
+      el.addEventListener('click', () => {
+        manualState.category = catKey;
         renderCatPicker();
-      }
-    });
+      });
+      attachLongPress(el, () => {
+        openEditCat({
+          mode: 'edit', type: manualState.type, key: catKey,
+          onDone: () => renderCatPicker()
+        });
+      });
+    }
   });
 }
 $('#manualSave').addEventListener('click', () => {
@@ -1866,6 +2008,7 @@ $('#backupExport').addEventListener('click', () => {
       exportedAt: new Date().toISOString(),
       transactions: state.transactions || [],
       customCats: state.customCats || { expense: [], income: [] },
+      builtinOverrides: state.builtinOverrides || { expense: {}, income: {} },
       settings: state.settings || DEFAULT_SETTINGS,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -1901,6 +2044,14 @@ $('#backupFileInput').addEventListener('change', async (e) => {
       state.customCats = {
         expense: Array.isArray(importedCustom.expense) ? importedCustom.expense : [],
         income: Array.isArray(importedCustom.income) ? importedCustom.income : [],
+      };
+    }
+    // Restore built-in overrides
+    const importedOverrides = (data && data.builtinOverrides) ? data.builtinOverrides : null;
+    if (importedOverrides && typeof importedOverrides === 'object') {
+      state.builtinOverrides = {
+        expense: importedOverrides.expense || {},
+        income: importedOverrides.income || {},
       };
     }
     // Restore settings (currency, budgets)
@@ -2482,17 +2633,26 @@ function renderPeCatPicker() {
     </button>
   `;
   $$('.cat-pick', container).forEach(el => {
-    el.addEventListener('click', () => {
-      if (el.dataset.new) {
-        openNewCat(peState.type, (newKey) => {
-          peState.category = newKey;
-          renderPeCatPicker();
+    if (el.dataset.new) {
+      el.addEventListener('click', () => {
+        openEditCat({
+          mode: 'new', type: peState.type,
+          onDone: (newKey) => { peState.category = newKey; renderPeCatPicker(); }
         });
-      } else {
-        peState.category = el.dataset.cat;
+      });
+    } else {
+      const catKey = el.dataset.cat;
+      el.addEventListener('click', () => {
+        peState.category = catKey;
         renderPeCatPicker();
-      }
-    });
+      });
+      attachLongPress(el, () => {
+        openEditCat({
+          mode: 'edit', type: peState.type, key: catKey,
+          onDone: () => renderPeCatPicker()
+        });
+      });
+    }
   });
 }
 $$('#sheetParsedEdit .type-toggle button').forEach(b => {
@@ -2519,43 +2679,235 @@ $('#parsedEditSave').addEventListener('click', () => {
   renderParsed();
 });
 
-/* ============ NEW CATEGORY ============ */
-let ncState = null; // { type, onDone, emoji }
-function openNewCat(type, onDone) {
-  ncState = { type, onDone, emoji: EMOJI_CHOICES[0] };
-  $('#newCatName').value = '';
-  renderEmojiPicker();
-  openSheet('sheetNewCat');
-  setTimeout(() => $('#newCatName').focus(), 320);
+/* ============ EDIT / NEW CATEGORY ============ */
+let ecState = null; // { mode, type, key, onDone, emoji, name, color }
+function openEditCat(opts) {
+  const { mode, type, key, onDone } = opts;
+  const isEdit = mode === 'edit';
+  const existing = isEdit ? catDisplay(key, type) : null;
+  ecState = {
+    mode, type, key: isEdit ? key : null,
+    onDone,
+    emoji: existing?.icon || EMOJI_CHOICES[0],
+    name: existing?.key || '',
+    color: existing?.color || pickNextColor(type),
+    isCustom: existing?.isCustom || false,
+  };
+  $('#ecTitle').textContent = isEdit ? '编辑分类' : '新分类';
+  $('#ecName').value = ecState.name;
+  $('#ecEmoji').value = ecState.emoji;
+  // If editing a built-in, disable the name field (would break import mapping)
+  // — wait, we do allow display-name override. Let's allow it.
+  $('#ecName').disabled = false;
+  // Show delete for custom, reset for built-in overrides
+  const hasOverride = isEdit && !ecState.isCustom &&
+    state.builtinOverrides[type] && state.builtinOverrides[type][key];
+  $('#ecDelete').style.display = (isEdit && ecState.isCustom) ? 'block' : 'none';
+  $('#ecReset').style.display = hasOverride ? 'block' : 'none';
+  renderEcSuggest();
+  renderEcColor();
+  renderEcPreview();
+  openSheet('sheetEditCat');
+  setTimeout(() => $('#ecName').focus(), 320);
 }
-function renderEmojiPicker() {
-  const container = $('#newCatEmoji');
+function pickNextColor(type) {
+  const used = new Set(allCats(type).map(c => c.color));
+  return CAT_PALETTE.find(c => !used.has(c)) || CAT_PALETTE[0];
+}
+function renderEcSuggest() {
+  const container = $('#ecSuggest');
   container.innerHTML = EMOJI_CHOICES.map(e => `
-    <button data-e="${e}" class="${ncState.emoji === e ? 'active' : ''}">${e}</button>
+    <button data-e="${e}" class="${ecState.emoji === e ? 'active' : ''}">${e}</button>
   `).join('');
   $$('button', container).forEach(el => {
     el.addEventListener('click', () => {
-      ncState.emoji = el.dataset.e;
-      renderEmojiPicker();
+      ecState.emoji = el.dataset.e;
+      $('#ecEmoji').value = el.dataset.e;
+      renderEcSuggest();
+      renderEcPreview();
     });
   });
 }
-$('#newCatSave').addEventListener('click', () => {
-  const name = $('#newCatName').value.trim();
+function renderEcColor() {
+  const container = $('#ecColor');
+  container.innerHTML = CAT_PALETTE.map(c => `
+    <button data-c="${c}" class="${ecState.color === c ? 'active' : ''}" style="background:${c};"></button>
+  `).join('');
+  $$('button', container).forEach(el => {
+    el.addEventListener('click', () => {
+      ecState.color = el.dataset.c;
+      renderEcColor();
+      renderEcPreview();
+    });
+  });
+}
+function renderEcPreview() {
+  const icon = $('#ecPreviewIcon');
+  icon.textContent = ecState.emoji || '💰';
+  icon.style.background = ecState.color + '22';
+  icon.style.color = ecState.color;
+  $('#ecPreviewName').textContent = ecState.name || '分类';
+}
+// Live update as user types
+$('#ecName').addEventListener('input', (e) => {
+  ecState.name = e.target.value.trim();
+  renderEcPreview();
+});
+$('#ecEmoji').addEventListener('input', (e) => {
+  // Take just the visible character(s) — up to a few grapheme clusters
+  const v = e.target.value.trim();
+  ecState.emoji = v || EMOJI_CHOICES[0];
+  renderEcPreview();
+  renderEcSuggest();
+});
+
+$('#ecSave').addEventListener('click', () => {
+  const name = $('#ecName').value.trim();
+  const emoji = $('#ecEmoji').value.trim() || ecState.emoji || '💰';
+  const color = ecState.color;
   if (!name) return toast('起个名字');
   if (name.length > 8) return toast('名字太长（最多 8 字）');
-  const existing = [...CATS.expense, ...CATS.income, ...state.customCats.expense, ...state.customCats.income];
-  if (existing.find(c => c.key === name)) return toast('已有这个分类了');
-  // Pick a color not yet used in this type
-  const used = new Set([...CATS[ncState.type], ...state.customCats[ncState.type]].map(c => c.color));
-  const color = CAT_PALETTE.find(c => !used.has(c)) || CAT_PALETTE[state.customCats[ncState.type].length % CAT_PALETTE.length];
-  const newCat = { key: name, icon: ncState.emoji, color };
-  state.customCats[ncState.type].push(newCat);
+
+  const isEdit = ecState.mode === 'edit';
+  const type = ecState.type;
+
+  if (!isEdit) {
+    // Adding new — check for key collision
+    const existing = [...allCats('expense'), ...allCats('income')].find(c => c.key === name);
+    if (existing) return toast('已有这个分类了');
+    state.customCats[type].push({ key: name, icon: emoji, color });
+    save();
+    closeSheet('sheetEditCat');
+    if (ecState.onDone) ecState.onDone(name);
+    renderAll();
+    toast(`加了「${name}」`);
+    return;
+  }
+
+  // Editing
+  const originalKey = ecState.key;
+  if (ecState.isCustom) {
+    // Custom: update the entry directly
+    const arr = state.customCats[type];
+    const idx = arr.findIndex(c => c.key === originalKey);
+    if (idx < 0) return toast('找不到这个分类');
+    // If renaming, check for collision
+    if (name !== originalKey) {
+      const others = [...allCats('expense'), ...allCats('income')].filter(c => c.key !== originalKey);
+      if (others.find(c => c.key === name)) return toast('已有这个分类了');
+      // Also rename in all txns
+      state.transactions.forEach(t => {
+        if (t.category === originalKey && t.type === type) t.category = name;
+      });
+      // Rename budget key
+      if (state.settings.budgets[originalKey] != null) {
+        state.settings.budgets[name] = state.settings.budgets[originalKey];
+        delete state.settings.budgets[originalKey];
+      }
+    }
+    arr[idx] = { key: name, icon: emoji, color };
+  } else {
+    // Built-in: store as override; only save fields that differ from default
+    const def = CATS[type].find(c => c.key === originalKey);
+    const override = {};
+    if (emoji !== def.icon) override.icon = emoji;
+    if (color !== def.color) override.color = color;
+    if (name !== originalKey) override.key = name; // display name only
+    if (Object.keys(override).length === 0) {
+      delete state.builtinOverrides[type][originalKey];
+    } else {
+      state.builtinOverrides[type][originalKey] = override;
+    }
+  }
   save();
-  closeSheet('sheetNewCat');
-  if (ncState.onDone) ncState.onDone(name);
-  toast(`加了「${name}」`);
+  closeSheet('sheetEditCat');
+  renderAll();
+  toast('已保存');
 });
+
+$('#ecDelete').addEventListener('click', () => {
+  const name = ecState.key;
+  const type = ecState.type;
+  // Count affected transactions
+  const affected = state.transactions.filter(t => t.category === name && t.type === type).length;
+  const msg = affected > 0
+    ? `删除「${name}」并把 ${affected} 笔账目移到「其他」？`
+    : `删除「${name}」？`;
+  if (!confirm(msg)) return;
+  state.customCats[type] = state.customCats[type].filter(c => c.key !== name);
+  // Reassign affected txns to "其他"
+  state.transactions.forEach(t => {
+    if (t.category === name && t.type === type) t.category = '其他';
+  });
+  // Remove budget for this cat
+  delete state.settings.budgets[name];
+  save();
+  closeSheet('sheetEditCat');
+  renderAll();
+  toast('已删除');
+});
+
+$('#ecReset').addEventListener('click', () => {
+  const type = ecState.type;
+  const key = ecState.key;
+  if (!confirm(`「${key}」恢复默认图标和颜色？`)) return;
+  delete state.builtinOverrides[type][key];
+  save();
+  closeSheet('sheetEditCat');
+  renderAll();
+  toast('已恢复');
+});
+
+/* ============ LONG-PRESS UTILITY ============ */
+function attachLongPress(el, callback) {
+  let timer = null;
+  let handled = false;
+  let sx = 0, sy = 0;
+  const start = (x, y) => {
+    handled = false;
+    sx = x; sy = y;
+    timer = setTimeout(() => {
+      handled = true;
+      if (navigator.vibrate) { try { navigator.vibrate(15); } catch {} }
+      el.classList.add('long-pressing');
+      setTimeout(() => el.classList.remove('long-pressing'), 200);
+      callback();
+    }, 480);
+  };
+  const cancel = () => {
+    if (timer) { clearTimeout(timer); timer = null; }
+  };
+  el.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    start(t.clientX, t.clientY);
+  }, { passive: true });
+  el.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) cancel();
+  }, { passive: true });
+  el.addEventListener('touchend', cancel);
+  el.addEventListener('touchcancel', cancel);
+  // Mouse: mousedown starts, mouseup cancels
+  el.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    start(e.clientX, e.clientY);
+  });
+  el.addEventListener('mouseup', cancel);
+  el.addEventListener('mouseleave', cancel);
+  // Suppress the click if long-press fired
+  el.addEventListener('click', (e) => {
+    if (handled) {
+      e.stopPropagation();
+      e.preventDefault();
+      handled = false;
+    }
+  }, true);
+  // Also allow desktop right-click as long-press
+  el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    callback();
+  });
+}
 
 /* ============ MONTH PICKER ============ */
 function openMonthPicker() {
@@ -2747,6 +3099,7 @@ function checkBudgetAlert(txn) {
 /* ============ SETTINGS ============ */
 function openSettings() {
   renderCurrencyPicker();
+  renderCatMgr();
   openSheet('sheetSettings');
 }
 function renderCurrencyPicker() {
@@ -2761,6 +3114,36 @@ function renderCurrencyPicker() {
       renderCurrencyPicker();
       renderAll();
       toast('货币已换成 ' + el.dataset.c);
+    });
+  });
+}
+function renderCatMgr() {
+  ['expense', 'income'].forEach(type => {
+    const container = $('#catMgr' + (type === 'expense' ? 'Expense' : 'Income'));
+    const cats = allCats(type);
+    container.innerHTML = cats.map(c => `
+      <div class="cat-mgr-item ${c.isCustom ? 'custom' : ''}" data-cat="${c.key}" data-type="${type}">
+        <div class="cat-mgr-item-icon" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
+        <div class="cat-mgr-item-name">${c.key}</div>
+      </div>
+    `).join('') + `
+      <div class="cat-mgr-item" data-new="1" data-type="${type}">
+        <div class="cat-mgr-item-icon" style="background:transparent; border:1.5px dashed var(--text-3); color:var(--text-3)">＋</div>
+        <div class="cat-mgr-item-name" style="color:var(--text-3)">新分类</div>
+      </div>
+    `;
+    $$('.cat-mgr-item', container).forEach(el => {
+      const t = el.dataset.type;
+      if (el.dataset.new) {
+        el.addEventListener('click', () => {
+          openEditCat({ mode: 'new', type: t, onDone: () => renderCatMgr() });
+        });
+      } else {
+        const key = el.dataset.cat;
+        el.addEventListener('click', () => {
+          openEditCat({ mode: 'edit', type: t, key, onDone: () => renderCatMgr() });
+        });
+      }
     });
   });
 }
