@@ -3,8 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#5EC2C2">
 <title>Sen · 记账</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sen">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Sen · Simple, private, offline expense tracker">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -669,6 +678,178 @@
   .parsed-amt { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .parsed-amt.income { color: var(--income); }
   .parsed-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .parsed-edit {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--card-2); color: var(--text-2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all .15s;
+  }
+  .parsed-edit svg { width: 14px; height: 14px; }
+  .parsed-edit:active { transform: scale(.9); }
+  .parsed-bulk-bar {
+    display: flex; gap: 8px; padding: 8px 20px 12px;
+    font-size: 12px;
+  }
+  .parsed-bulk-bar button {
+    flex: 1; padding: 8px; background: var(--card-2);
+    border-radius: 10px; color: var(--text-2); font-weight: 500;
+  }
+  .parsed-bulk-bar button:active { transform: scale(.97); }
+
+  /* ============== EMOJI PICKER ============== */
+  .emoji-picker {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+    padding: 4px;
+  }
+  .emoji-picker button {
+    aspect-ratio: 1; font-size: 22px;
+    border-radius: 12px; background: var(--card-2);
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .emoji-picker button.active {
+    background: var(--accent-bg);
+    border: 2px solid var(--accent);
+    transform: scale(1.05);
+  }
+  .cat-pick.cat-new .cat-pick-icon {
+    border: 1.5px dashed var(--text-3);
+    background: transparent !important;
+    font-size: 22px !important;
+    font-weight: 400;
+  }
+
+  /* ============== SEARCH ============== */
+  .search-input-wrap {
+    position: relative;
+    background: var(--card-2);
+    border-radius: 14px;
+    padding: 12px 14px 12px 42px;
+    display: flex; align-items: center;
+    margin-bottom: 8px;
+  }
+  .search-input-wrap svg {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%);
+    width: 18px; height: 18px;
+    color: var(--text-3);
+  }
+  .search-input-wrap input {
+    width: 100%;
+    background: transparent; border: none;
+    font-size: 15px; color: var(--text-1);
+    outline: none;
+  }
+  .search-meta {
+    font-size: 12px; color: var(--text-3); padding: 4px 4px 8px;
+  }
+
+  /* ============== BUDGET ============== */
+  .budget-list {
+    padding: 8px 20px 40px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .budget-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--card-2);
+  }
+  .budget-row-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .budget-row-body {
+    flex: 1; min-width: 0;
+  }
+  .budget-row-name {
+    font-size: 14px; font-weight: 600; margin-bottom: 4px;
+  }
+  .budget-row-progress {
+    height: 4px; background: var(--card-2); border-radius: 999px;
+    overflow: hidden; margin-top: 4px;
+  }
+  .budget-row-progress-bar {
+    height: 100%; background: var(--accent);
+    border-radius: 999px; transition: width .3s;
+  }
+  .budget-row-progress-bar.warn { background: #FFA76B; }
+  .budget-row-progress-bar.over { background: #FF6B6B; }
+  .budget-row-spent {
+    font-size: 11px; color: var(--text-3); margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .budget-row-input {
+    width: 88px; text-align: right;
+    background: var(--card-2); border-radius: 10px;
+    padding: 8px 10px; font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    border: none; outline: none;
+    color: var(--text-1);
+  }
+  .budget-row-input:focus {
+    box-shadow: 0 0 0 2px var(--accent-bg);
+  }
+
+  /* Chart page budget list */
+  .chart-budget-section {
+    padding: 8px 20px 20px;
+  }
+  .chart-budget-title {
+    font-size: 13px; color: var(--text-3);
+    margin: 20px 4px 12px;
+  }
+  .chart-budget-item {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: var(--sh-1);
+  }
+  .chart-budget-item-head {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 8px;
+  }
+  .chart-budget-item-name {
+    font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chart-budget-item-name-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+  .chart-budget-item-amt {
+    font-size: 12px; color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .chart-budget-item-amt b { color: var(--text-1); font-weight: 700; }
+  .chart-budget-item-amt.over b { color: #FF6B6B; }
+
+  /* ============== CURRENCY PICKER ============== */
+  .currency-picker {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  .currency-picker button {
+    padding: 14px 8px;
+    background: var(--card-2);
+    border-radius: 12px;
+    font-size: 15px; font-weight: 600;
+    transition: all .15s;
+  }
+  .currency-picker button.active {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    transform: scale(1.03);
+  }
+
+  /* Full-height sheets (search / budget) */
+  .sheet.sheet-full {
+    height: 92vh;
+    max-height: 92vh;
+  }
 
   /* ============== MONTH PICKER ============== */
   .month-list {
@@ -780,12 +961,19 @@
       <div class="month-picker-sub" id="hdrRel">本月</div>
     </button>
   </div>
-  <button class="btn-icon" id="btnViewToggle" aria-label="切换视图">
-    <svg id="iconChart" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 3v18h18"/>
-      <path d="M7 14l4-4 4 4 5-5"/>
-    </svg>
-  </button>
+  <div style="display:flex; gap:4px;">
+    <button class="btn-icon" id="btnSearch" aria-label="搜索">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    </button>
+    <button class="btn-icon" id="btnViewToggle" aria-label="切换视图">
+      <svg id="iconChart" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3v18h18"/>
+        <path d="M7 14l4-4 4 4 5-5"/>
+      </svg>
+    </button>
+  </div>
 </header>
 
 <!-- ============ CALENDAR VIEW ============ -->
@@ -887,6 +1075,24 @@
         <div class="add-opt-sub">导出 / 导入 JSON 备份</div>
       </div>
     </button>
+    <button class="add-opt" data-add="budget">
+      <div class="add-opt-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+      </div>
+      <div class="add-opt-body">
+        <div class="add-opt-title">预算设置</div>
+        <div class="add-opt-sub">每月分类花费上限</div>
+      </div>
+    </button>
+    <button class="add-opt" data-add="settings">
+      <div class="add-opt-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+      <div class="add-opt-body">
+        <div class="add-opt-title">设置</div>
+        <div class="add-opt-sub">货币、关于</div>
+      </div>
+    </button>
   </div>
 </div>
 
@@ -986,7 +1192,10 @@
     <div class="sheet-title">确认要记的账</div>
     <button class="sheet-save" id="parsedSave">全部保存</button>
   </div>
-  <div style="padding: 4px 20px 8px; font-size:12px; color:var(--text-3);" id="parsedHint">点按可勾除不需要的项</div>
+  <div style="padding: 4px 20px 4px; font-size:12px; color:var(--text-3);" id="parsedHint">左边勾选 · 点右边铅笔改分类</div>
+  <div class="parsed-bulk-bar">
+    <button id="parsedSelectAll">全选 / 反选</button>
+  </div>
   <div class="parsed-list" id="parsedList"></div>
 </div>
 
@@ -1012,6 +1221,106 @@
   <div class="txn-actions">
     <button class="txn-action-btn" id="txnEdit">编辑</button>
     <button class="txn-action-btn danger" id="txnDelete">删除</button>
+  </div>
+</div>
+
+<!-- Edit ONE parsed item (before saving batch) -->
+<div class="sheet" id="sheetParsedEdit">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>取消</button>
+    <div class="sheet-title">改这笔</div>
+    <button class="sheet-save" id="parsedEditSave">完成</button>
+  </div>
+  <div class="form-body">
+    <div class="type-toggle" style="display:flex; margin: 0 auto 8px; width:fit-content;">
+      <button data-ptype="expense" class="active">支出</button>
+      <button data-ptype="income">收入</button>
+    </div>
+    <div class="amount-hero">
+      <div class="amount-label">金额</div>
+      <input class="amount-input" id="peAmt" type="text" inputmode="decimal" placeholder="0.00">
+    </div>
+    <div class="section-label">分类</div>
+    <div class="cat-picker" id="peCatPicker"></div>
+    <div class="form-row">
+      <label>备注</label>
+      <input type="text" id="peNote" placeholder="加个备注…">
+    </div>
+    <div class="form-row">
+      <label>日期</label>
+      <input type="date" id="peDate">
+    </div>
+  </div>
+</div>
+
+<!-- Add custom category -->
+<div class="sheet" id="sheetNewCat">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>取消</button>
+    <div class="sheet-title">新分类</div>
+    <button class="sheet-save" id="newCatSave">保存</button>
+  </div>
+  <div class="form-body">
+    <div class="form-row" style="margin-top:8px;">
+      <label>名称</label>
+      <input type="text" id="newCatName" placeholder="比如 咖啡" maxlength="8">
+    </div>
+    <div class="section-label" style="margin-top: 16px;">选个 emoji</div>
+    <div class="emoji-picker" id="newCatEmoji"></div>
+  </div>
+</div>
+
+<!-- Search -->
+<div class="sheet sheet-full" id="sheetSearch">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>关闭</button>
+    <div class="sheet-title">搜索</div>
+    <span style="width:40px;"></span>
+  </div>
+  <div style="padding: 4px 20px 8px;">
+    <div class="search-input-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="商家、备注、分类、金额..." autocomplete="off">
+    </div>
+    <div class="search-meta" id="searchMeta"></div>
+  </div>
+  <div class="parsed-list" id="searchList"></div>
+</div>
+
+<!-- Budget -->
+<div class="sheet sheet-full" id="sheetBudget">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>关闭</button>
+    <div class="sheet-title">预算</div>
+    <button class="sheet-save" id="budgetSave">完成</button>
+  </div>
+  <div style="padding: 8px 20px 4px; font-size:12px; color:var(--text-3); line-height:1.55;">
+    每月分类花费上限，超过 80% 时会提醒。留空表示不限。
+  </div>
+  <div class="budget-list" id="budgetList"></div>
+</div>
+
+<!-- Settings -->
+<div class="sheet" id="sheetSettings">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>关闭</button>
+    <div class="sheet-title">设置</div>
+    <span style="width:40px;"></span>
+  </div>
+  <div class="form-body">
+    <div class="section-label" style="margin-top:8px;">货币</div>
+    <div class="currency-picker" id="currencyPicker"></div>
+    <div style="font-size:12px; color:var(--text-3); margin: 24px 4px 8px;">关于</div>
+    <div style="font-size:13px; color:var(--text-2); background:var(--card-2); padding:14px 16px; border-radius:14px; line-height:1.7;">
+      <b>Sen</b> · 记账 · v1.2<br>
+      纯本地存储，不上传任何数据。<br>
+      加到手机主屏幕就能像 App 一样用。
+    </div>
   </div>
 </div>
 
@@ -1045,19 +1354,47 @@ const CATS = {
 };
 const catMap = {};
 [...CATS.expense, ...CATS.income].forEach(c => catMap[c.key] = c);
-const getCat = (name, type='expense') => (CATS[type].find(c => c.key === name) || catMap[name] || CATS.expense[CATS.expense.length-1]);
+const getCat = (name, type='expense') => {
+  const custom = state?.customCats?.[type]?.find(c => c.key === name);
+  if (custom) return custom;
+  return CATS[type].find(c => c.key === name) || catMap[name] || CATS.expense[CATS.expense.length-1];
+};
 
 /* ============ STATE ============ */
 const STORAGE_KEY = 'jizhang.v1';
-let state = { transactions: [] };
+const DEFAULT_SETTINGS = { currency: 'RM', budgets: {} };
+let state = { transactions: [], customCats: { expense: [], income: [] }, settings: {...DEFAULT_SETTINGS} };
 try {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) state = JSON.parse(raw);
+  if (raw) {
+    const loaded = JSON.parse(raw);
+    state.transactions = loaded.transactions || [];
+    state.customCats = loaded.customCats || { expense: [], income: [] };
+    if (!state.customCats.expense) state.customCats.expense = [];
+    if (!state.customCats.income) state.customCats.income = [];
+    state.settings = { ...DEFAULT_SETTINGS, ...(loaded.settings || {}) };
+    if (!state.settings.budgets) state.settings.budgets = {};
+  }
 } catch {}
 
 function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 }
+
+const cur = () => state.settings.currency || 'RM';
+const CURRENCIES = ['RM', '$', 'S$', '¥', '€', '£', '฿', '₹', 'Rp', 'HK$', 'NT$', '₩'];
+
+// Get combined built-in + custom categories for a type
+function allCats(type) {
+  const builtin = CATS[type];
+  const custom = (state.customCats && state.customCats[type]) || [];
+  // Insert customs before the "其他" tile so 其他 stays last
+  const other = builtin[builtin.length - 1];
+  return [...builtin.slice(0, -1), ...custom, other];
+}
+// Palette for auto-assigning colors to custom cats
+const CAT_PALETTE = ['#5EC2C2','#FFA76B','#FF7EB3','#7FB4FF','#B78FFF','#FF8080','#8BD17C','#F4C15C','#5CC7A3','#F498B0','#B48A6B','#EA80FC','#4DB6AC','#FFB74D','#9575CD'];
+const EMOJI_CHOICES = ['💵','🍔','🍜','🥤','🍺','☕','🚗','⛽','🚌','🛒','🛍','🎁','🏠','💡','📱','💻','🎬','🎮','🎵','📚','✏️','💊','🏥','✈️','🏖','🎉','💇','💅','🐕','🐈','⚽','🏋️','💰','💳','📈','🧧'];
 
 // Seed with a bit of data if empty
 if (state.transactions.length === 0) {
@@ -1172,7 +1509,7 @@ function renderCalendar() {
     let inner = `<div class="day-num">${d}</div>`;
     if (info) {
       if (info.expense > 0) {
-        inner += `<div class="day-amt">$ ${fmtShort(info.expense)}</div>`;
+        inner += `<div class="day-amt">${cur()} ${fmtShort(info.expense)}</div>`;
       } else if (info.income > 0) {
         inner += `<div class="day-amt income">+${fmtShort(info.income)}</div>`;
       }
@@ -1202,7 +1539,7 @@ function renderDayDetail() {
     .sort((a, b) => b.createdAt - a.createdAt);
   const total = dayTxns.reduce((s, t) => s + (t.type === 'expense' ? +t.amount : 0), 0);
   const income = dayTxns.reduce((s, t) => s + (t.type === 'income' ? +t.amount : 0), 0);
-  $('#ddTotal').innerHTML = total > 0 ? `<span style="color:var(--text-3)">支出</span> $ ${fmtShort(total)}` + (income>0 ? ` <span style="color:var(--income); margin-left:8px;">+${fmtShort(income)}</span>` : '') : (income > 0 ? `<span style="color:var(--income)">+${fmtShort(income)}</span>` : '');
+  $('#ddTotal').innerHTML = total > 0 ? `<span style="color:var(--text-3)">支出</span> ${cur()} ${fmtShort(total)}` + (income>0 ? ` <span style="color:var(--income); margin-left:8px;">+${fmtShort(income)}</span>` : '') : (income > 0 ? `<span style="color:var(--income)">+${fmtShort(income)}</span>` : '');
 
   const list = $('#txnList');
   if (dayTxns.length === 0) {
@@ -1218,7 +1555,7 @@ function renderDayDetail() {
         <div class="txn-cat">${t.category}</div>
         <div class="txn-note">${t.note || (t.type === 'income' ? '收入' : '支出')}</div>
       </div>
-      <div class="txn-amt ${t.type === 'income' ? 'income' : ''}">${sign}$ ${fmtShort(t.amount)}</div>
+      <div class="txn-amt ${t.type === 'income' ? 'income' : ''}">${sign}${cur()} ${fmtShort(t.amount)}</div>
     </div>`;
   }).join('');
   $$('.txn', list).forEach(el => {
@@ -1237,11 +1574,11 @@ function renderChart() {
   const bal = totalIn - totalExp;
 
   $('#statTotal').textContent = fmtShort(totalExp);
-  $('#statIn').textContent = `$ ${fmtShort(totalIn)}`;
+  $('#statIn').textContent = `${cur()} ${fmtShort(totalIn)}`;
   const balEl = $('#statBal');
-  balEl.textContent = `${bal >= 0 ? '' : '-'}$ ${fmtShort(Math.abs(bal))}`;
+  balEl.textContent = `${bal >= 0 ? '' : '-'}${cur()} ${fmtShort(Math.abs(bal))}`;
   balEl.className = 'v ' + (bal >= 0 ? 'in' : 'out');
-  $('#chartCenterVal').textContent = `$ ${fmtShort(totalExp)}`;
+  $('#chartCenterVal').textContent = `${cur()} ${fmtShort(totalExp)}`;
 
   // Group by cat
   const byCat = {};
@@ -1283,7 +1620,7 @@ function renderChart() {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (ctx) => `${ctx.label}: $ ${fmtShort(ctx.parsed)}`,
+              label: (ctx) => `${ctx.label}: ${cur()} ${fmtShort(ctx.parsed)}`,
             },
           },
         },
@@ -1308,15 +1645,45 @@ function renderChart() {
         <div class="cat-bar-outer"><div class="cat-bar-inner" style="width:${pct}%; background:${c.color}"></div></div>
       </div>
       <div class="cat-val">
-        <div class="cat-val-amt">$ ${fmtShort(v)}</div>
+        <div class="cat-val-amt">${cur()} ${fmtShort(v)}</div>
         <div class="cat-val-pct">${pct.toFixed(1)}%</div>
       </div>
     </div>`;
   }).join('');
+
+  // Budget progress cards
+  const budgets = state.settings.budgets || {};
+  const budgetKeys = Object.keys(budgets).filter(k => budgets[k] > 0);
+  if (budgetKeys.length > 0) {
+    const spent = {};
+    monthTxns.forEach(t => { if (t.type === 'expense') spent[t.category] = (spent[t.category] || 0) + Number(t.amount); });
+    const budgetHtml = `
+      <div class="chart-budget-title">📊 本月预算</div>
+      ${budgetKeys.map(k => {
+        const c = getCat(k, 'expense');
+        const b = budgets[k];
+        const sp = spent[k] || 0;
+        const pct = Math.min(100, (sp / b) * 100);
+        const over = sp > b;
+        const cls = over ? 'over' : (pct >= 80 ? 'warn' : '');
+        return `<div class="chart-budget-item">
+          <div class="chart-budget-item-head">
+            <div class="chart-budget-item-name">
+              <div class="chart-budget-item-name-icon" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
+              ${k}
+            </div>
+            <div class="chart-budget-item-amt ${over ? 'over' : ''}"><b>${cur()} ${fmtShort(sp)}</b> / ${cur()} ${fmtShort(b)}</div>
+          </div>
+          <div class="budget-row-progress"><div class="budget-row-progress-bar ${cls}" style="width:${pct}%"></div></div>
+        </div>`;
+      }).join('')}
+    `;
+    bd.insertAdjacentHTML('beforeend', budgetHtml);
+  }
 }
 
 /* ============ SHEETS ============ */
-const sheets = ['sheetAdd', 'sheetManual', 'sheetImport', 'sheetBackup', 'sheetParsed', 'sheetMonth', 'sheetTxn'];
+const sheets = ['sheetAdd', 'sheetManual', 'sheetImport', 'sheetBackup', 'sheetParsed', 'sheetParsedEdit', 'sheetNewCat', 'sheetSearch', 'sheetBudget', 'sheetSettings', 'sheetMonth', 'sheetTxn'];
 let sheetStack = [];
 function openSheet(id) {
   $('#sheetMask').classList.add('show');
@@ -1352,6 +1719,8 @@ $$('.add-opt').forEach(btn => {
       if (type === 'manual') openManual();
       else if (type === 'import') openImport();
       else if (type === 'backup') openBackup();
+      else if (type === 'budget') openBudget();
+      else if (type === 'settings') openSettings();
     }, 250);
   });
 });
@@ -1393,18 +1762,30 @@ $$('.type-toggle button').forEach(b => {
   });
 });
 function renderCatPicker() {
-  const cats = CATS[manualState.type];
+  const cats = allCats(manualState.type);
   const container = $('#catPicker');
   container.innerHTML = cats.map(c => `
     <button class="cat-pick ${manualState.category === c.key ? 'active' : ''}" data-cat="${c.key}">
       <div class="cat-pick-icon" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
       <div class="cat-pick-name">${c.key}</div>
     </button>
-  `).join('');
+  `).join('') + `
+    <button class="cat-pick cat-new" data-new="1">
+      <div class="cat-pick-icon" style="background:var(--card-2); color:var(--text-3)">＋</div>
+      <div class="cat-pick-name">新分类</div>
+    </button>
+  `;
   $$('.cat-pick', container).forEach(el => {
     el.addEventListener('click', () => {
-      manualState.category = el.dataset.cat;
-      renderCatPicker();
+      if (el.dataset.new) {
+        openNewCat(manualState.type, (newKey) => {
+          manualState.category = newKey;
+          renderCatPicker();
+        });
+      } else {
+        manualState.category = el.dataset.cat;
+        renderCatPicker();
+      }
     });
   });
 }
@@ -1425,7 +1806,7 @@ $('#manualSave').addEventListener('click', () => {
     }
     toast('已更新');
   } else {
-    state.transactions.push({
+    const newTxn = {
       id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
       type: manualState.type,
       category: manualState.category,
@@ -1433,8 +1814,10 @@ $('#manualSave').addEventListener('click', () => {
       note,
       date,
       createdAt: Date.now(),
-    });
+    };
+    state.transactions.push(newTxn);
     toast('已记账 ✓');
+    setTimeout(() => checkBudgetAlert(newTxn), 800);
   }
   save();
   selectedDate = date;
@@ -1451,7 +1834,7 @@ function openTxnActions(id) {
   actingTxnId = id;
   const t = state.transactions.find(t => t.id === id);
   if (!t) return;
-  $('#txnActTitle').textContent = `${t.category} · ${t.type === 'income' ? '+' : ''}$ ${fmtShort(t.amount)}`;
+  $('#txnActTitle').textContent = `${t.category} · ${t.type === 'income' ? '+' : ''}${cur()} ${fmtShort(t.amount)}`;
   openSheet('sheetTxn');
 }
 $('#txnEdit').addEventListener('click', () => {
@@ -1482,6 +1865,8 @@ $('#backupExport').addEventListener('click', () => {
       version: BACKUP_VERSION,
       exportedAt: new Date().toISOString(),
       transactions: state.transactions || [],
+      customCats: state.customCats || { expense: [], income: [] },
+      settings: state.settings || DEFAULT_SETTINGS,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1510,6 +1895,19 @@ $('#backupFileInput').addEventListener('change', async (e) => {
     const data = JSON.parse(text);
     const txns = Array.isArray(data) ? data : (data.transactions || []);
     if (!Array.isArray(txns)) throw new Error('文件里没找到 transactions 数组');
+    // Restore custom categories first so items using them validate
+    const importedCustom = (data && data.customCats) ? data.customCats : null;
+    if (importedCustom && typeof importedCustom === 'object') {
+      state.customCats = {
+        expense: Array.isArray(importedCustom.expense) ? importedCustom.expense : [],
+        income: Array.isArray(importedCustom.income) ? importedCustom.income : [],
+      };
+    }
+    // Restore settings (currency, budgets)
+    if (data && data.settings && typeof data.settings === 'object') {
+      state.settings = { ...DEFAULT_SETTINGS, ...data.settings };
+      if (!state.settings.budgets) state.settings.budgets = {};
+    }
     // Light validation: each item needs amount + type + date
     const cleaned = [];
     for (const it of txns) {
@@ -1519,9 +1917,9 @@ $('#backupFileInput').addEventListener('change', async (e) => {
       if (!(amt > 0)) continue;
       let date = it.date;
       if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) date = fmtDate(new Date());
-      const cats = CATS[type];
+      const cats = allCats(type);
       let cat = it.category;
-      if (!cats.find(c => c.key === cat)) cat = cats[cats.length - 1].key;
+      if (!cats.find(c => c.key === cat)) cat = '其他';
       cleaned.push({
         id: it.id || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
         type, category: cat, amount: amt,
@@ -1721,10 +2119,54 @@ function parseTxtText(text) {
 const COL_PATTERNS = {
   date: /^(transaction[\s_-]?)?(post(ing)?[\s_-]?)?(trans\.?[\s_-]?)?(value[\s_-]?)?(date|tarikh|日期|时间|交易日期)/i,
   desc: /(description|narration|details?|remark|memo|particular|merchant|transaction[\s_-]?description|详情|备注|商家|摘要|说明|交易描述)/i,
-  amount: /^((transaction|txn)[\s_-]?)?(amount|jumlah|金额|数额)$/i,
+  amount: /^((transaction|txn)[\s_-]?)?(amount|jumlah|金额|数额|价格|value)$/i,
   debit: /(debit|withdrawal|支出|out|dr\.?)/i,
   credit: /(credit|deposit|收入|in|cr\.?)/i,
+  category: /^(category|categories|cat|kategori|type of expense|分类|类别|种类)$/i,
+  type: /^(type|kind|jenis|收支|direction)$/i,
 };
+
+/* ---------- Category alias map (English/Malay/Chinese → app's Chinese categories) ---------- */
+const CAT_ALIAS = {
+  // Expense — English
+  'food':'外食','meal':'外食','meals':'外食','dining':'外食','restaurant':'外食','breakfast':'外食','lunch':'外食','dinner':'外食','snack':'外食','snacks':'外食','coffee':'外食','drink':'外食','drinks':'外食','beverage':'外食','makan':'外食','makanan':'外食','minum':'外食',
+  'transport':'交通','transportation':'交通','commute':'交通','car':'交通','fuel':'交通','petrol':'交通','gas':'交通','parking':'交通','taxi':'交通','ride':'交通','pengangkutan':'交通','minyak':'交通',
+  'shopping':'购物','shop':'购物','clothes':'购物','clothing':'购物','apparel':'购物','beli':'购物','beli-belah':'购物',
+  'grocery':'购物','groceries':'购物','supermarket':'购物','pasar':'购物',
+  'utilities':'生活','utility':'生活','bills':'生活','bill':'生活','rent':'生活','home':'生活','household':'生活','living':'生活','housing':'生活','sewa':'生活',
+  'entertainment':'娱乐','movie':'娱乐','movies':'娱乐','game':'娱乐','games':'娱乐','gaming':'娱乐','fun':'娱乐','leisure':'娱乐','hiburan':'娱乐',
+  'medical':'医疗','health':'医疗','healthcare':'医疗','medicine':'医疗','pharmacy':'医疗','doctor':'医疗','klinik':'医疗','ubat':'医疗',
+  'education':'教育','study':'教育','studies':'教育','course':'教育','class':'教育','tuition':'教育','book':'教育','books':'教育','learning':'教育','school':'教育','pendidikan':'教育','pelajaran':'教育',
+  'communication':'通讯','phone':'通讯','internet':'通讯','wifi':'通讯','mobile':'通讯','telecom':'通讯','data':'通讯',
+  'travel':'旅行','trip':'旅行','vacation':'旅行','holiday':'旅行','flight':'旅行','hotel':'旅行','pelancongan':'旅行','cuti':'旅行',
+  'gift':'人情','gifts':'人情','present':'人情','wedding':'人情','donation':'人情','charity':'人情','hadiah':'人情','ang pow':'人情','angpow':'人情',
+  'alcohol':'烟酒','cigarette':'烟酒','cigarettes':'烟酒','tobacco':'烟酒','beer':'烟酒','wine':'烟酒','liquor':'烟酒','rokok':'烟酒','arak':'烟酒',
+  'other':'其他','others':'其他','misc':'其他','miscellaneous':'其他','lain-lain':'其他',
+  // Income — English
+  'salary':'工资','wage':'工资','wages':'工资','payroll':'工资','income':'工资','gaji':'工资',
+  'freelance':'兼职','commission':'兼职','parttime':'兼职','part-time':'兼职','side':'兼职','sidejob':'兼职','side hustle':'兼职',
+  'red packet':'红包','red pocket':'红包',
+  'refund':'退款','reimbursement':'退款','reimburse':'退款','pemulangan':'退款',
+  'dividend':'理财','interest':'理财','bonus':'理财','investment':'理财','faedah':'理财','pelaburan':'理财',
+};
+
+const INCOME_CAT_HINTS = new Set(['工资','兼职','红包','退款','理财']);
+
+function mapCategory(raw) {
+  if (raw == null) return null;
+  const s = String(raw).trim().toLowerCase();
+  if (!s) return null;
+  if (CAT_ALIAS[s]) return CAT_ALIAS[s];
+  // Also check if it's already a Chinese category (identity)
+  const asChinese = String(raw).trim();
+  const all = [...CATS.expense, ...CATS.income].map(c => c.key);
+  if (all.includes(asChinese)) return asChinese;
+  // Partial word match
+  for (const [k, v] of Object.entries(CAT_ALIAS)) {
+    if (s.includes(k) || k.includes(s)) return v;
+  }
+  return null;
+}
 function detectColumns(rows) {
   for (let i = 0; i < Math.min(20, rows.length); i++) {
     const row = rows[i];
@@ -1849,6 +2291,8 @@ function rowsToTxns(rows, detected) {
 
     const dateStr = parseFlexDate(row[cols.date]);
     const desc = String(row[cols.desc] ?? '').trim();
+    const rawCat = cols.category != null ? String(row[cols.category] ?? '').trim() : '';
+    const rawType = cols.type != null ? String(row[cols.type] ?? '').trim() : '';
 
     let amount = null, type = null;
     if (cols.debit != null || cols.credit != null) {
@@ -1860,13 +2304,35 @@ function rowsToTxns(rows, detected) {
       const amt = parseAmount(row[cols.amount]);
       if (amt != null && Math.abs(amt) > 0.001) {
         amount = Math.abs(amt);
-        type = amt < 0 ? 'expense' : 'income';
+        // Priority: explicit Type column → negative sign → income-hint from category → default EXPENSE
+        if (rawType) {
+          type = /(income|收入|in|credit|cr|revenue)/i.test(rawType) ? 'income' : 'expense';
+        } else if (amt < 0) {
+          type = 'expense';
+        } else {
+          // Check if category column hints at income
+          const mappedCat = rawCat ? mapCategory(rawCat) : null;
+          type = (mappedCat && INCOME_CAT_HINTS.has(mappedCat)) ? 'income' : 'expense';
+        }
       }
     }
     if (amount == null || !type) continue;
-    if (!dateStr && !desc) continue;
+    if (!dateStr && !desc && !rawCat) continue;
 
-    const category = categorize(desc, type === 'income');
+    // Category: use column value if present and mappable, else keyword categorize on description
+    let category = rawCat ? mapCategory(rawCat) : null;
+    if (!category) category = categorize(desc, type === 'income');
+
+    // If the resolved category actually belongs to the OTHER type list, correct the type
+    if (!CATS[type].find(c => c.key === category)) {
+      const otherType = type === 'income' ? 'expense' : 'income';
+      if (CATS[otherType].find(c => c.key === category)) {
+        type = otherType;
+      } else {
+        category = '其他';
+      }
+    }
+
     items.push({
       id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
       type, category, amount,
@@ -1887,9 +2353,14 @@ function normalizeItems(items) {
   for (const it of items || []) {
     if (!it) continue;
     const type = (it.type === 'income') ? 'income' : 'expense';
-    const cats = CATS[type];
+    const cats = allCats(type);
     let cat = it.category;
-    if (!cats.find(c => c.key === cat)) cat = cats[cats.length - 1].key; // 其他
+    // Try mapping English/Malay category names too
+    if (!cats.find(c => c.key === cat)) {
+      const mapped = mapCategory(cat);
+      if (mapped && cats.find(c => c.key === mapped)) cat = mapped;
+      else cat = '其他';
+    }
     const amt = Number(String(it.amount ?? '').replace(/[^\d.\-]/g, '')) || 0;
     if (!(amt > 0)) continue;
     let date = it.date;
@@ -1910,37 +2381,60 @@ function normalizeItems(items) {
 let parsedItems = [];
 function showParsed(items) {
   parsedItems = items;
+  const dupCount = markDuplicates(items);
   renderParsed();
   openSheet('sheetParsed');
+  if (dupCount > 0) {
+    setTimeout(() => toast(`${dupCount} 笔可能已存在，已取消勾选`), 350);
+  }
 }
 function renderParsed() {
   const list = $('#parsedList');
   const total = parsedItems.filter(x => x.include).length;
-  $('#parsedHint').textContent = `识别到 ${parsedItems.length} 条，勾选 ${total} 条，点按可切换`;
+  const dups = parsedItems.filter(x => x.duplicate).length;
+  const hint = dups > 0
+    ? `识别到 ${parsedItems.length} 条 · 勾选 ${total} · ${dups} 笔重复`
+    : `识别到 ${parsedItems.length} 条 · 勾选 ${total}`;
+  $('#parsedHint').textContent = hint;
   list.innerHTML = parsedItems.map((it, i) => {
     const c = getCat(it.category, it.type);
+    const dupMark = it.duplicate ? ' <span style="font-size:10px; color:#FFA76B; margin-left:6px;">· 可能重复</span>' : '';
     return `<div class="parsed-item ${it.include ? '' : 'exclude'}" data-i="${i}">
-      <div class="parsed-check">
+      <div class="parsed-check" data-toggle="1">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <div class="txn-icon" style="width:36px;height:36px;font-size:18px;background:${c.color}22; color:${c.color}">${c.icon}</div>
-      <div class="parsed-body">
+      <div class="parsed-body" data-edit="1">
         <div class="parsed-body-row">
-          <div class="parsed-cat">${it.category}</div>
-          <div class="parsed-amt ${it.type === 'income' ? 'income' : ''}">${it.type === 'income' ? '+' : ''}$ ${fmtShort(it.amount)}</div>
+          <div class="parsed-cat">${it.category}${dupMark}</div>
+          <div class="parsed-amt ${it.type === 'income' ? 'income' : ''}">${it.type === 'income' ? '+' : ''}${cur()} ${fmtShort(it.amount)}</div>
         </div>
         <div class="parsed-meta">${it.date} · ${it.note || (it.type === 'income' ? '收入' : '支出')}</div>
+      </div>
+      <div class="parsed-edit" data-edit="1" aria-label="改">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       </div>
     </div>`;
   }).join('');
   $$('.parsed-item', list).forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-toggle], [data-edit]');
       const i = +el.dataset.i;
-      parsedItems[i].include = !parsedItems[i].include;
-      renderParsed();
+      if (!target) return;
+      if (target.dataset.toggle) {
+        parsedItems[i].include = !parsedItems[i].include;
+        renderParsed();
+      } else if (target.dataset.edit) {
+        openParsedEdit(i);
+      }
     });
   });
 }
+$('#parsedSelectAll').addEventListener('click', () => {
+  const anyOff = parsedItems.some(x => !x.include);
+  parsedItems.forEach(x => x.include = anyOff);
+  renderParsed();
+});
 $('#parsedSave').addEventListener('click', () => {
   const kept = parsedItems.filter(x => x.include);
   if (kept.length === 0) return toast('没有勾选');
@@ -1952,6 +2446,115 @@ $('#parsedSave').addEventListener('click', () => {
   closeSheet('sheetParsed');
   renderAll();
   toast(`记了 ${kept.length} 笔 ✓`);
+});
+
+/* ============ EDIT ONE PARSED ITEM ============ */
+let peIndex = -1;
+let peState = null;
+function openParsedEdit(i) {
+  peIndex = i;
+  const it = parsedItems[i];
+  peState = { type: it.type, category: it.category };
+  $('#peAmt').value = it.amount;
+  $('#peNote').value = it.note || '';
+  $('#peDate').value = it.date;
+  renderPeToggle();
+  renderPeCatPicker();
+  openSheet('sheetParsedEdit');
+}
+function renderPeToggle() {
+  $$('#sheetParsedEdit .type-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.ptype === peState.type);
+  });
+}
+function renderPeCatPicker() {
+  const cats = allCats(peState.type);
+  const container = $('#peCatPicker');
+  container.innerHTML = cats.map(c => `
+    <button class="cat-pick ${peState.category === c.key ? 'active' : ''}" data-cat="${c.key}">
+      <div class="cat-pick-icon" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
+      <div class="cat-pick-name">${c.key}</div>
+    </button>
+  `).join('') + `
+    <button class="cat-pick cat-new" data-new="1">
+      <div class="cat-pick-icon" style="background:var(--card-2); color:var(--text-3)">＋</div>
+      <div class="cat-pick-name">新分类</div>
+    </button>
+  `;
+  $$('.cat-pick', container).forEach(el => {
+    el.addEventListener('click', () => {
+      if (el.dataset.new) {
+        openNewCat(peState.type, (newKey) => {
+          peState.category = newKey;
+          renderPeCatPicker();
+        });
+      } else {
+        peState.category = el.dataset.cat;
+        renderPeCatPicker();
+      }
+    });
+  });
+}
+$$('#sheetParsedEdit .type-toggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    peState.type = b.dataset.ptype;
+    // If current category doesn't exist in new type list, fall back to 其他
+    const cats = allCats(peState.type);
+    if (!cats.find(c => c.key === peState.category)) peState.category = '其他';
+    renderPeToggle();
+    renderPeCatPicker();
+  });
+});
+$('#parsedEditSave').addEventListener('click', () => {
+  const amt = parseFloat($('#peAmt').value);
+  if (!(amt > 0)) return toast('金额不太对');
+  if (!peState.category) return toast('选一个分类');
+  const it = parsedItems[peIndex];
+  it.type = peState.type;
+  it.category = peState.category;
+  it.amount = amt;
+  it.note = $('#peNote').value.trim();
+  it.date = $('#peDate').value || it.date;
+  closeSheet('sheetParsedEdit');
+  renderParsed();
+});
+
+/* ============ NEW CATEGORY ============ */
+let ncState = null; // { type, onDone, emoji }
+function openNewCat(type, onDone) {
+  ncState = { type, onDone, emoji: EMOJI_CHOICES[0] };
+  $('#newCatName').value = '';
+  renderEmojiPicker();
+  openSheet('sheetNewCat');
+  setTimeout(() => $('#newCatName').focus(), 320);
+}
+function renderEmojiPicker() {
+  const container = $('#newCatEmoji');
+  container.innerHTML = EMOJI_CHOICES.map(e => `
+    <button data-e="${e}" class="${ncState.emoji === e ? 'active' : ''}">${e}</button>
+  `).join('');
+  $$('button', container).forEach(el => {
+    el.addEventListener('click', () => {
+      ncState.emoji = el.dataset.e;
+      renderEmojiPicker();
+    });
+  });
+}
+$('#newCatSave').addEventListener('click', () => {
+  const name = $('#newCatName').value.trim();
+  if (!name) return toast('起个名字');
+  if (name.length > 8) return toast('名字太长（最多 8 字）');
+  const existing = [...CATS.expense, ...CATS.income, ...state.customCats.expense, ...state.customCats.income];
+  if (existing.find(c => c.key === name)) return toast('已有这个分类了');
+  // Pick a color not yet used in this type
+  const used = new Set([...CATS[ncState.type], ...state.customCats[ncState.type]].map(c => c.color));
+  const color = CAT_PALETTE.find(c => !used.has(c)) || CAT_PALETTE[state.customCats[ncState.type].length % CAT_PALETTE.length];
+  const newCat = { key: name, icon: ncState.emoji, color };
+  state.customCats[ncState.type].push(newCat);
+  save();
+  closeSheet('sheetNewCat');
+  if (ncState.onDone) ncState.onDone(name);
+  toast(`加了「${name}」`);
 });
 
 /* ============ MONTH PICKER ============ */
@@ -2028,6 +2631,162 @@ function renderView() {
   } else {
     icon.innerHTML = '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>';
   }
+}
+
+/* ============ SEARCH ============ */
+$('#btnSearch').addEventListener('click', () => openSearch());
+function openSearch() {
+  $('#searchInput').value = '';
+  renderSearch();
+  openSheet('sheetSearch');
+  setTimeout(() => $('#searchInput').focus(), 320);
+}
+$('#searchInput').addEventListener('input', renderSearch);
+function renderSearch() {
+  const q = $('#searchInput').value.trim().toLowerCase();
+  const list = $('#searchList');
+  const meta = $('#searchMeta');
+  if (!q) {
+    list.innerHTML = '';
+    meta.textContent = '搜索所有账目';
+    return;
+  }
+  const asNum = parseFloat(q);
+  const results = state.transactions.filter(t => {
+    if ((t.note || '').toLowerCase().includes(q)) return true;
+    if ((t.category || '').toLowerCase().includes(q)) return true;
+    if (t.date.includes(q)) return true;
+    if (!isNaN(asNum) && Math.abs(Number(t.amount) - asNum) < 0.01) return true;
+    return false;
+  }).sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt||0) - (a.createdAt||0));
+  meta.textContent = results.length === 0 ? '没找到' : `找到 ${results.length} 笔`;
+  list.innerHTML = results.slice(0, 200).map(t => {
+    const c = getCat(t.category, t.type);
+    return `<div class="parsed-item" data-id="${t.id}" style="cursor:pointer;">
+      <div class="txn-icon" style="width:36px;height:36px;font-size:18px;background:${c.color}22; color:${c.color}">${c.icon}</div>
+      <div class="parsed-body">
+        <div class="parsed-body-row">
+          <div class="parsed-cat">${t.category}</div>
+          <div class="parsed-amt ${t.type === 'income' ? 'income' : ''}">${t.type === 'income' ? '+' : ''}${cur()} ${fmtShort(t.amount)}</div>
+        </div>
+        <div class="parsed-meta">${t.date} · ${t.note || (t.type === 'income' ? '收入' : '支出')}</div>
+      </div>
+    </div>`;
+  }).join('');
+  $$('.parsed-item', list).forEach(el => {
+    el.addEventListener('click', () => {
+      closeSheet('sheetSearch');
+      setTimeout(() => openTxnActions(el.dataset.id), 250);
+    });
+  });
+}
+
+/* ============ BUDGET ============ */
+function openBudget() {
+  renderBudgetList();
+  openSheet('sheetBudget');
+}
+function renderBudgetList() {
+  const container = $('#budgetList');
+  const monthPrefix = `${cursorYear}-${String(cursorMonth+1).padStart(2,'0')}`;
+  const monthTxns = state.transactions.filter(t => t.type === 'expense' && t.date.startsWith(monthPrefix));
+  const spent = {};
+  monthTxns.forEach(t => { spent[t.category] = (spent[t.category] || 0) + Number(t.amount); });
+  const cats = allCats('expense');
+  container.innerHTML = cats.map(c => {
+    const b = Number(state.settings.budgets[c.key] || 0);
+    const sp = Number(spent[c.key] || 0);
+    const pct = b > 0 ? Math.min(100, (sp / b) * 100) : 0;
+    const cls = pct >= 100 ? 'over' : (pct >= 80 ? 'warn' : '');
+    return `<div class="budget-row">
+      <div class="budget-row-icon" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
+      <div class="budget-row-body">
+        <div class="budget-row-name">${c.key}</div>
+        ${b > 0 ? `<div class="budget-row-progress"><div class="budget-row-progress-bar ${cls}" style="width:${pct}%"></div></div>
+        <div class="budget-row-spent">${cur()} ${fmtShort(sp)} / ${cur()} ${fmtShort(b)} (${Math.round(pct)}%)</div>` : ''}
+      </div>
+      <input class="budget-row-input" type="number" inputmode="decimal" step="10" min="0"
+        data-cat="${c.key}" placeholder="—"
+        value="${b > 0 ? b : ''}">
+    </div>`;
+  }).join('');
+}
+$('#budgetSave').addEventListener('click', () => {
+  const inputs = $$('.budget-row-input', $('#budgetList'));
+  inputs.forEach(inp => {
+    const val = parseFloat(inp.value);
+    const cat = inp.dataset.cat;
+    if (val > 0) state.settings.budgets[cat] = val;
+    else delete state.settings.budgets[cat];
+  });
+  save();
+  closeSheet('sheetBudget');
+  toast('预算已保存');
+  renderAll();
+});
+
+// Budget check after new transaction — warn if crossing threshold
+function checkBudgetAlert(txn) {
+  if (txn.type !== 'expense') return;
+  const budget = state.settings.budgets[txn.category];
+  if (!budget || budget <= 0) return;
+  const monthPrefix = txn.date.slice(0, 7);
+  const spent = state.transactions
+    .filter(t => t.type === 'expense' && t.category === txn.category && t.date.startsWith(monthPrefix))
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const before = spent - Number(txn.amount);
+  const pct = (spent / budget) * 100;
+  const pctBefore = (before / budget) * 100;
+  if (pctBefore < 100 && pct >= 100) {
+    toast(`⚠️ ${txn.category} 已超预算\n${cur()} ${fmtShort(spent)} / ${cur()} ${fmtShort(budget)}`);
+  } else if (pctBefore < 80 && pct >= 80) {
+    toast(`⚠️ ${txn.category} 已用 ${Math.round(pct)}% 预算`);
+  }
+}
+
+/* ============ SETTINGS ============ */
+function openSettings() {
+  renderCurrencyPicker();
+  openSheet('sheetSettings');
+}
+function renderCurrencyPicker() {
+  const container = $('#currencyPicker');
+  container.innerHTML = CURRENCIES.map(c => `
+    <button data-c="${c}" class="${c === cur() ? 'active' : ''}">${c}</button>
+  `).join('');
+  $$('button', container).forEach(el => {
+    el.addEventListener('click', () => {
+      state.settings.currency = el.dataset.c;
+      save();
+      renderCurrencyPicker();
+      renderAll();
+      toast('货币已换成 ' + el.dataset.c);
+    });
+  });
+}
+
+/* ============ DUPLICATE DETECTION ============ */
+function txnHash(t) {
+  return `${t.date}|${Number(t.amount).toFixed(2)}|${(t.note || '').toLowerCase().trim().slice(0, 30)}|${t.type}`;
+}
+function markDuplicates(items) {
+  const existing = new Set(state.transactions.map(txnHash));
+  let dupCount = 0;
+  items.forEach(it => {
+    if (existing.has(txnHash(it))) {
+      it.include = false;
+      it.duplicate = true;
+      dupCount++;
+    }
+  });
+  return dupCount;
+}
+
+/* ============ PWA ============ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
 }
 
 /* ============ RENDER ALL ============ */
