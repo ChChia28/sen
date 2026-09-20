@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/parse-text.js": {
+      "maxDuration": 30
+    },
+    "api/parse-images.js": {
+      "maxDuration": 60
+    }
+  }
+}

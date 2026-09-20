@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<title>记账</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --card: #ffffff;
+    --card-2: #f8f9fa;
+    --text: #1a1a1a;
+    --text-2: #666;
+    --text-3: #b0b0b0;
+    --text-4: #e0e0e0;
+    --accent: #5EC2C2;
+    --accent-dark: #47a8a8;
+    --accent-soft: #cfeaea;
+    --accent-bg: #e6f4f4;
+    --danger: #ff6b6b;
+    --income: #6BCB77;
+    --line: #f2f2f2;
+    --sh-1: 0 2px 10px rgba(0,0,0,0.035);
+    --sh-2: 0 6px 22px rgba(0,0,0,0.06);
+    --sh-3: 0 10px 40px rgba(0,0,0,0.08);
+    --sh-fab: 0 8px 24px rgba(94, 194, 194, 0.4);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.4;
+    padding: env(safe-area-inset-top, 0) 0 calc(env(safe-area-inset-bottom, 0) + 90px);
+    max-width: 500px;
+    margin: 0 auto;
+    position: relative;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  button { border:none; background:none; font: inherit; color: inherit; cursor: pointer; }
+  input, textarea, select { font: inherit; color: inherit; border: none; outline: none; background: transparent; }
+
+  /* ============== HEADER ============== */
+  .app-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 24px 12px;
+  }
+  .h-left { display: flex; align-items: flex-start; gap: 12px; }
+  .btn-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-2);
+    transition: background .15s;
+  }
+  .btn-icon:active { background: var(--card-2); }
+  .month-picker {
+    display: flex; flex-direction: column;
+    align-items: flex-start;
+    padding: 2px 0;
+  }
+  .month-picker-main {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 20px; font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .month-picker-sub {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+  .chevron {
+    width: 12px; height: 12px;
+    border-right: 2px solid var(--text-2);
+    border-bottom: 2px solid var(--text-2);
+    transform: rotate(45deg);
+    margin-top: -4px;
+    margin-left: 2px;
+  }
+
+  /* ============== VIEW TOGGLE ============== */
+  .view {
+    animation: fadeIn .25s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .view.hidden { display: none; }
+
+  /* ============== CALENDAR ============== */
+  .calendar { padding: 8px 12px; }
+  .weekday-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 8px 4px;
+  }
+  .weekday {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-3);
+    font-weight: 500;
+  }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  }
+  .day {
+    aspect-ratio: 1 / 1.15;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 2px 4px;
+    border-radius: 12px;
+    transition: background .15s;
+    position: relative;
+  }
+  .day.empty { visibility: hidden; }
+  .day.has-expense .day-num { color: var(--text); }
+  .day-num {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-3);
+    line-height: 1;
+  }
+  .day.today .day-num { color: var(--accent-dark); }
+  .day.today::after {
+    content: '';
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .day-amt {
+    font-size: 10.5px;
+    color: var(--text-2);
+    margin-top: 4px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .day-amt.income { color: var(--income); }
+  .day.selected {
+    background: var(--card-2);
+  }
+  .day.selected .day-num { color: var(--text); }
+
+  /* month total for last day like in ref */
+  .month-total-mini {
+    font-size: 9.5px;
+    color: var(--danger);
+    margin-top: 2px;
+    line-height: 1;
+  }
+
+  /* ============== DAY DETAIL LIST ============== */
+  .day-detail {
+    padding: 26px 20px 8px;
+  }
+  .day-detail-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .day-detail-title { font-size: 15px; font-weight: 600; }
+  .day-detail-title .weekday-txt { color: var(--text-3); font-weight: 400; margin-left: 8px; font-size: 13px; }
+  .day-detail-total { font-size: 15px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+  .txn-list { display: flex; flex-direction: column; gap: 10px; padding: 0 12px 20px; }
+  .txn {
+    display: flex;
+    align-items: center;
+    background: var(--card);
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: var(--sh-1);
+    border: 1px solid var(--line);
+    gap: 14px;
+    animation: slideUp .3s ease backwards;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .txn:nth-child(1) { animation-delay: 0s; }
+  .txn:nth-child(2) { animation-delay: .05s; }
+  .txn:nth-child(3) { animation-delay: .1s; }
+  .txn:nth-child(4) { animation-delay: .15s; }
+  .txn:nth-child(5) { animation-delay: .2s; }
+  .txn-icon {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--accent-bg);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .txn-body { flex: 1; min-width: 0; }
+  .txn-cat { font-size: 15px; font-weight: 500; }
+  .txn-note {
+    font-size: 12.5px;
+    color: var(--text-3);
+    margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .txn-amt {
+    font-size: 20px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.3px;
+  }
+  .txn-amt.income { color: var(--income); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-3);
+  }
+  .empty-state-big {
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--text-4);
+    margin-bottom: 8px;
+    letter-spacing: -1px;
+  }
+  .empty-state-sub { font-size: 13px; }
+
+  /* ============== CHART VIEW ============== */
+  .stats-hero {
+    padding: 20px 28px 24px;
+  }
+  .stats-label {
+    font-size: 13px;
+    color: var(--text-3);
+    letter-spacing: 0.4px;
+  }
+  .stats-big {
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats-big .cur { font-size: 22px; font-weight: 500; color: var(--text-2); margin-right: 4px; vertical-align: 6px; }
+  .stats-sub {
+    display: flex; gap: 20px;
+    margin-top: 14px;
+    font-size: 13px;
+  }
+  .stats-sub-item span { color: var(--text-3); margin-right: 6px; }
+  .stats-sub-item .v { color: var(--text); font-weight: 600; }
+  .stats-sub-item .v.in { color: var(--income); }
+  .stats-sub-item .v.out { color: var(--danger); }
+
+  .chart-card {
+    background: var(--card);
+    margin: 8px 16px 16px;
+    padding: 24px 20px;
+    border-radius: 22px;
+    box-shadow: var(--sh-2);
+    border: 1px solid var(--line);
+  }
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 260px;
+    margin: 0 auto;
+    aspect-ratio: 1;
+  }
+  .chart-center {
+    position: absolute;
+    inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .chart-center-label { font-size: 11px; color: var(--text-3); }
+  .chart-center-val { font-size: 22px; font-weight: 700; letter-spacing: -.5px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+  .cat-breakdown {
+    padding: 0 16px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .cat-row {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: var(--sh-1);
+    border: 1px solid var(--line);
+  }
+  .cat-dot {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .cat-info { flex: 1; }
+  .cat-name { font-size: 14px; font-weight: 500; }
+  .cat-bar-outer {
+    width: 100%;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .cat-bar-inner {
+    height: 100%;
+    border-radius: 2px;
+    transition: width .5s ease;
+  }
+  .cat-val {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .cat-val-amt { font-size: 15px; font-weight: 600; }
+  .cat-val-pct { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+  /* ============== FAB ============== */
+  .fab {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0) + 88px);
+    right: 22px;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 300;
+    box-shadow: var(--sh-fab);
+    z-index: 10;
+    transition: transform .18s;
+  }
+  .fab:active { transform: scale(.94); }
+
+  /* ============== BOTTOM NAV ============== */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    max-width: 500px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 8px 20px calc(env(safe-area-inset-bottom, 0) + 8px);
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid var(--line);
+    z-index: 5;
+  }
+  .nav-btn {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 4px;
+    padding: 8px 24px;
+    color: var(--text-3);
+    font-size: 11px;
+    transition: color .15s;
+    border-radius: 10px;
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn svg { width: 22px; height: 22px; }
+
+  /* ============== MODAL / SHEET ============== */
+  .sheet-mask {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s;
+  }
+  .sheet-mask.show { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    max-width: 500px;
+    margin: 0 auto;
+    background: var(--bg);
+    border-radius: 24px 24px 0 0;
+    z-index: 101;
+    transform: translateY(100%);
+    transition: transform .28s cubic-bezier(.2,.8,.3,1);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0) + 20px);
+  }
+  .sheet.show { transform: translateY(0); }
+  .sheet-handle {
+    width: 40px; height: 4px;
+    background: var(--text-4);
+    border-radius: 2px;
+    margin: 12px auto 8px;
+  }
+  .sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 20px 12px;
+  }
+  .sheet-title { font-size: 17px; font-weight: 600; }
+  .sheet-close {
+    padding: 6px 12px;
+    font-size: 14px;
+    color: var(--text-2);
+    border-radius: 10px;
+  }
+  .sheet-save {
+    padding: 6px 14px;
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 600;
+    border-radius: 10px;
+  }
+
+  /* ============== ADD OPTIONS ============== */
+  .add-opts { padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .add-opt {
+    display: flex; align-items: center; gap: 16px;
+    padding: 18px 18px;
+    background: var(--card-2);
+    border-radius: 18px;
+    text-align: left;
+    transition: transform .12s;
+  }
+  .add-opt:active { transform: scale(.98); }
+  .add-opt-icon {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .add-opt-icon svg { width: 26px; height: 26px; }
+  .add-opt-body { flex: 1; }
+  .add-opt-title { font-size: 15px; font-weight: 600; }
+  .add-opt-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+  /* ============== MANUAL FORM ============== */
+  .form-body { padding: 8px 20px 20px; }
+  .amount-hero {
+    text-align: center;
+    padding: 24px 0 20px;
+  }
+  .amount-label { font-size: 12px; color: var(--text-3); }
+  .amount-input {
+    font-size: 46px; font-weight: 700;
+    text-align: center;
+    width: 100%;
+    letter-spacing: -1.5px;
+    font-variant-numeric: tabular-nums;
+    margin-top: 6px;
+    caret-color: var(--accent);
+  }
+  .amount-input::placeholder { color: var(--text-4); }
+  .type-toggle {
+    display: inline-flex;
+    background: var(--card-2);
+    border-radius: 12px;
+    padding: 3px;
+    margin-top: 8px;
+  }
+  .type-toggle button {
+    padding: 6px 18px;
+    border-radius: 9px;
+    font-size: 13px;
+    color: var(--text-2);
+    transition: background .15s, color .15s;
+  }
+  .type-toggle button.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: var(--sh-1);
+    font-weight: 600;
+  }
+
+  .cat-picker {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .cat-pick {
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 12px 4px;
+    border-radius: 14px;
+    background: var(--card-2);
+    transition: all .15s;
+    border: 2px solid transparent;
+  }
+  .cat-pick.active {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+  }
+  .cat-pick-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .cat-pick-name { font-size: 11px; color: var(--text-2); }
+  .cat-pick.active .cat-pick-name { color: var(--text); font-weight: 600; }
+
+  .form-row {
+    display: flex; align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    gap: 12px;
+  }
+  .form-row:last-child { border-bottom: none; }
+  .form-row label { font-size: 13px; color: var(--text-2); width: 60px; flex-shrink: 0; }
+  .form-row input {
+    flex: 1;
+    font-size: 15px;
+    padding: 4px 0;
+  }
+  .form-row .date-pick {
+    flex: 1;
+    display: flex; align-items: center;
+    justify-content: space-between;
+  }
+  .section-label {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 16px;
+    margin-bottom: 8px;
+    letter-spacing: 0.4px;
+  }
+
+  /* ============== VOICE ============== */
+  .voice-body { padding: 20px; text-align: center; }
+  .mic-wrap {
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: var(--accent-bg);
+    display: flex; align-items: center; justify-content: center;
+    margin: 20px auto;
+    position: relative;
+    transition: transform .2s;
+  }
+  .mic-wrap.recording {
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(94,194,194,.45); }
+    50% { box-shadow: 0 0 0 30px rgba(94,194,194,0); }
+  }
+  .mic-icon {
+    width: 60px; height: 60px;
+    color: var(--accent);
+  }
+  .mic-wrap.recording .mic-icon { color: var(--accent-dark); }
+  .voice-status {
+    font-size: 15px;
+    color: var(--text-2);
+    margin-top: 10px;
+    min-height: 22px;
+  }
+  .voice-transcript {
+    min-height: 80px;
+    padding: 16px;
+    background: var(--card-2);
+    border-radius: 16px;
+    margin: 20px 12px;
+    text-align: left;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .voice-transcript.placeholder { color: var(--text-3); text-align: center; }
+  .voice-actions {
+    display: flex; gap: 12px;
+    padding: 0 12px 8px;
+  }
+  .voice-actions button {
+    flex: 1;
+    padding: 14px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background .15s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  .btn-primary:active { background: var(--accent-dark); }
+  .btn-primary:disabled { background: var(--text-4); color: white; }
+  .btn-secondary {
+    background: var(--card-2);
+    color: var(--text-2);
+  }
+
+  /* ============== IMPORT ============== */
+  .import-body { padding: 8px 20px 20px; }
+  .drop-zone {
+    border: 2px dashed var(--text-4);
+    border-radius: 20px;
+    padding: 36px 20px;
+    text-align: center;
+    color: var(--text-3);
+    transition: border-color .15s, background .15s;
+    margin: 8px 0 16px;
+  }
+  .drop-zone.drag { border-color: var(--accent); background: var(--accent-bg); }
+  .drop-zone svg {
+    width: 48px; height: 48px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .drop-zone-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .drop-zone-sub { font-size: 12px; margin-top: 4px; }
+  .file-buttons {
+    display: flex; gap: 10px;
+    margin-bottom: 16px;
+  }
+  .file-btn {
+    flex: 1;
+    padding: 14px;
+    background: var(--card-2);
+    border-radius: 14px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 4px;
+    font-size: 13px;
+  }
+  .file-btn svg { width: 24px; height: 24px; color: var(--accent); }
+  .file-preview {
+    margin: 12px 0;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .file-preview img {
+    width: 100%; max-height: 200px;
+    object-fit: contain;
+    border-radius: 12px;
+    background: var(--card-2);
+  }
+  .file-info {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px;
+    background: var(--card-2);
+    border-radius: 12px;
+    font-size: 13px;
+  }
+  .file-info-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-info-remove { color: var(--danger); font-size: 20px; padding: 0 6px; }
+  .parse-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: white;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .parse-btn:disabled { background: var(--text-4); }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,.35);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============== PARSED RESULTS ============== */
+  .parsed-list {
+    padding: 8px 12px 12px;
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .parsed-item {
+    background: var(--card-2);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .parsed-item.exclude { opacity: 0.45; }
+  .parsed-check {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--text-4);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .parsed-item:not(.exclude) .parsed-check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .parsed-check svg { width: 14px; height: 14px; }
+  .parsed-body { flex: 1; min-width: 0; }
+  .parsed-body-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .parsed-cat { font-size: 14px; font-weight: 600; }
+  .parsed-amt { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .parsed-amt.income { color: var(--income); }
+  .parsed-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+  /* ============== MONTH PICKER ============== */
+  .month-list {
+    padding: 8px 20px 20px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .year-header {
+    grid-column: 1 / -1;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-2);
+    padding: 12px 0 4px;
+  }
+  .month-cell {
+    padding: 14px 8px;
+    border-radius: 14px;
+    background: var(--card-2);
+    text-align: center;
+    font-size: 14px;
+    transition: all .15s;
+  }
+  .month-cell.current { background: var(--accent); color: white; font-weight: 600; }
+  .month-cell.selected { border: 2px solid var(--accent); background: var(--accent-bg); }
+
+  /* ============== TOAST ============== */
+  .toast {
+    position: fixed;
+    bottom: 120px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(0,0,0,.82);
+    color: white;
+    padding: 10px 18px;
+    border-radius: 22px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s, transform .22s;
+    z-index: 200;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ============== ACTION SHEET FOR TXN ============== */
+  .txn-actions {
+    padding: 8px 12px 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .txn-action-btn {
+    padding: 16px;
+    background: var(--card-2);
+    border-radius: 14px;
+    text-align: center;
+    font-size: 15px;
+  }
+  .txn-action-btn.danger { color: var(--danger); }
+
+  /* ============== KEYPAD (numeric) ============== */
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 8px 12px 12px;
+    background: var(--card-2);
+    border-radius: 20px 20px 0 0;
+  }
+  .key {
+    background: var(--card);
+    padding: 16px 0;
+    border-radius: 12px;
+    font-size: 20px;
+    font-weight: 500;
+    text-align: center;
+    box-shadow: var(--sh-1);
+  }
+  .key:active { background: var(--card-2); }
+  .key.op { color: var(--accent); }
+  .key.done {
+    background: var(--accent);
+    color: white;
+    font-size: 15px;
+  }
+
+  /* small utility */
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="app-header">
+  <div class="h-left">
+    <button class="btn-icon" id="btnToday" aria-label="今天">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+    </button>
+    <button class="month-picker" id="btnMonthPick">
+      <div class="month-picker-main">
+        <span id="hdrMonth">2026 / 09</span>
+        <span class="chevron"></span>
+      </div>
+      <div class="month-picker-sub" id="hdrRel">本月</div>
+    </button>
+  </div>
+  <button class="btn-icon" id="btnViewToggle" aria-label="切换视图">
+    <svg id="iconChart" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3v18h18"/>
+      <path d="M7 14l4-4 4 4 5-5"/>
+    </svg>
+  </button>
+</header>
+
+<!-- ============ CALENDAR VIEW ============ -->
+<section class="view" id="viewCalendar">
+  <div class="calendar">
+    <div class="weekday-row">
+      <div class="weekday">Sun</div>
+      <div class="weekday">Mon</div>
+      <div class="weekday">Tue</div>
+      <div class="weekday">Wed</div>
+      <div class="weekday">Thu</div>
+      <div class="weekday">Fri</div>
+      <div class="weekday">Sat</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+  <div class="day-detail" id="dayDetail">
+    <div class="day-detail-head">
+      <div class="day-detail-title"><span id="ddDate">--</span><span class="weekday-txt" id="ddWk"></span></div>
+      <div class="day-detail-total" id="ddTotal">$ 0</div>
+    </div>
+  </div>
+  <div class="txn-list" id="txnList"></div>
+</section>
+
+<!-- ============ CHART VIEW ============ -->
+<section class="view hidden" id="viewChart">
+  <div class="stats-hero">
+    <div class="stats-label">本月支出</div>
+    <div class="stats-big"><span class="cur">$</span><span id="statTotal">0</span></div>
+    <div class="stats-sub">
+      <div class="stats-sub-item"><span>收入</span><span class="v in" id="statIn">$ 0</span></div>
+      <div class="stats-sub-item"><span>结余</span><span class="v" id="statBal">$ 0</span></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-wrap">
+      <canvas id="pieChart"></canvas>
+      <div class="chart-center">
+        <div class="chart-center-label">支出总计</div>
+        <div class="chart-center-val" id="chartCenterVal">$ 0</div>
+      </div>
+    </div>
+  </div>
+  <div class="cat-breakdown" id="catBreakdown"></div>
+</section>
+
+<!-- ============ FAB ============ -->
+<button class="fab" id="fabAdd" aria-label="添加">+</button>
+
+<!-- ============ BOTTOM NAV ============ -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-view="calendar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    <span>日历</span>
+  </button>
+  <button class="nav-btn" data-view="chart">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
+    </svg>
+    <span>图表</span>
+  </button>
+</nav>
+
+<!-- ============ SHEETS ============ -->
+<div class="sheet-mask" id="sheetMask"></div>
+
+<!-- Add options -->
+<div class="sheet" id="sheetAdd">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head"><div class="sheet-title">新增记账</div><button class="sheet-close" data-close>关闭</button></div>
+  <div class="add-opts">
+    <button class="add-opt" data-add="manual">
+      <div class="add-opt-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </div>
+      <div class="add-opt-body">
+        <div class="add-opt-title">手动记账</div>
+        <div class="add-opt-sub">输入金额和分类</div>
+      </div>
+    </button>
+    <button class="add-opt" data-add="voice">
+      <div class="add-opt-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </div>
+      <div class="add-opt-body">
+        <div class="add-opt-title">语音记账</div>
+        <div class="add-opt-sub">说一句，AI 帮你记</div>
+      </div>
+    </button>
+    <button class="add-opt" data-add="import">
+      <div class="add-opt-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div class="add-opt-body">
+        <div class="add-opt-title">导入账单</div>
+        <div class="add-opt-sub">上传收据 / 账单截图 / PDF</div>
+      </div>
+    </button>
+  </div>
+</div>
+
+<!-- Manual form -->
+<div class="sheet" id="sheetManual">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>取消</button>
+    <div class="sheet-title" id="manualTitle">记一笔</div>
+    <button class="sheet-save" id="manualSave">保存</button>
+  </div>
+  <div class="form-body">
+    <div class="type-toggle" style="display:flex; margin: 0 auto 8px; width:fit-content;">
+      <button data-type="expense" class="active">支出</button>
+      <button data-type="income">收入</button>
+    </div>
+    <div class="amount-hero">
+      <div class="amount-label">金额</div>
+      <input class="amount-input" id="amtInput" type="text" inputmode="decimal" placeholder="0.00">
+    </div>
+    <div class="section-label">分类</div>
+    <div class="cat-picker" id="catPicker"></div>
+    <div class="form-row">
+      <label>备注</label>
+      <input type="text" id="noteInput" placeholder="加个备注…">
+    </div>
+    <div class="form-row">
+      <label>日期</label>
+      <input type="date" id="dateInput">
+    </div>
+  </div>
+</div>
+
+<!-- Voice -->
+<div class="sheet" id="sheetVoice">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>关闭</button>
+    <div class="sheet-title">语音记账</div>
+    <span style="width:40px;"></span>
+  </div>
+  <div class="voice-body">
+    <button class="mic-wrap" id="micBtn">
+      <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+    <div class="voice-status" id="voiceStatus">点按开始说话</div>
+    <div class="voice-transcript placeholder" id="voiceTranscript">试试说："今天午饭 25 块 麦当劳"</div>
+  </div>
+  <div class="voice-actions">
+    <button class="btn-secondary" id="voiceClear">清空</button>
+    <button class="btn-primary" id="voiceParse" disabled>AI 解析</button>
+  </div>
+</div>
+
+<!-- Import -->
+<div class="sheet" id="sheetImport">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>关闭</button>
+    <div class="sheet-title">导入账单</div>
+    <span style="width:40px;"></span>
+  </div>
+  <div class="import-body">
+    <div class="drop-zone" id="dropZone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <div class="drop-zone-title">拖到这里，或选择文件</div>
+      <div class="drop-zone-sub">支持图片、PDF 账单/收据</div>
+    </div>
+    <div class="file-buttons">
+      <label class="file-btn" for="imgInput">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>相册</span>
+      </label>
+      <label class="file-btn" for="camInput">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>拍照</span>
+      </label>
+      <label class="file-btn" for="pdfInput">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>PDF</span>
+      </label>
+    </div>
+    <input type="file" id="imgInput" accept="image/*" multiple style="display:none">
+    <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none">
+    <input type="file" id="pdfInput" accept="application/pdf" style="display:none">
+    <div class="file-preview" id="filePreview"></div>
+    <button class="parse-btn" id="parseBtn" disabled>
+      <span id="parseBtnText">AI 解析账单</span>
+    </button>
+  </div>
+</div>
+
+<!-- Parsed confirm -->
+<div class="sheet" id="sheetParsed">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>取消</button>
+    <div class="sheet-title">确认要记的账</div>
+    <button class="sheet-save" id="parsedSave">全部保存</button>
+  </div>
+  <div style="padding: 4px 20px 8px; font-size:12px; color:var(--text-3);" id="parsedHint">点按可勾除不需要的项</div>
+  <div class="parsed-list" id="parsedList"></div>
+</div>
+
+<!-- Month picker -->
+<div class="sheet" id="sheetMonth">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>关闭</button>
+    <div class="sheet-title">选择月份</div>
+    <button class="sheet-save" id="monthGoToday">今天</button>
+  </div>
+  <div class="month-list" id="monthList"></div>
+</div>
+
+<!-- Txn actions -->
+<div class="sheet" id="sheetTxn">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>关闭</button>
+    <div class="sheet-title" id="txnActTitle">这笔账</div>
+    <span style="width:40px;"></span>
+  </div>
+  <div class="txn-actions">
+    <button class="txn-action-btn" id="txnEdit">编辑</button>
+    <button class="txn-action-btn danger" id="txnDelete">删除</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  // Set up pdf.js worker
+  import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+  window.__pdfjs = pdfjsLib;
+</script>
+
+<script>
+/* ============ CATEGORIES ============ */
+const CATS = {
+  expense: [
+    { key: '外食',   icon: '🍚', color: '#5EC2C2' },
+    { key: '交通',   icon: '🚗', color: '#FFA76B' },
+    { key: '购物',   icon: '🛍', color: '#FF7EB3' },
+    { key: '生活',   icon: '🏠', color: '#7FB4FF' },
+    { key: '娱乐',   icon: '🎬', color: '#B78FFF' },
+    { key: '医疗',   icon: '💊', color: '#FF8080' },
+    { key: '教育',   icon: '📚', color: '#8BD17C' },
+    { key: '通讯',   icon: '📱', color: '#F4C15C' },
+    { key: '旅行',   icon: '✈️', color: '#5CC7A3' },
+    { key: '人情',   icon: '🎁', color: '#F498B0' },
+    { key: '烟酒',   icon: '🍺', color: '#B48A6B' },
+    { key: '其他',   icon: '💰', color: '#A0A0A0' },
+  ],
+  income: [
+    { key: '工资',   icon: '💼', color: '#6BCB77' },
+    { key: '兼职',   icon: '💻', color: '#5EC2C2' },
+    { key: '红包',   icon: '🧧', color: '#FF8080' },
+    { key: '理财',   icon: '📈', color: '#7FB4FF' },
+    { key: '退款',   icon: '↩️', color: '#B78FFF' },
+    { key: '其他',   icon: '💰', color: '#A0A0A0' },
+  ],
+};
+const catMap = {};
+[...CATS.expense, ...CATS.income].forEach(c => catMap[c.key] = c);
+const getCat = (name, type='expense') => (CATS[type].find(c => c.key === name) || catMap[name] || CATS.expense[CATS.expense.length-1]);
+
+/* ============ STATE ============ */
+const STORAGE_KEY = 'jizhang.v1';
+let state = { transactions: [] };
+try {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) state = JSON.parse(raw);
+} catch {}
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+}
+
+// Seed with a bit of data if empty
+if (state.transactions.length === 0) {
+  const today = new Date();
+  const y = today.getFullYear(), m = today.getMonth();
+  const mk = (d, cat, amt, note, type='expense') => ({
+    id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+    date: fmtDate(new Date(y, m, d)),
+    category: cat, amount: amt, note, type,
+    createdAt: Date.now(),
+  });
+  state.transactions = [
+    mk(Math.max(1, today.getDate()-2), '外食', 25.5, '午饭'),
+    mk(Math.max(1, today.getDate()-2), '交通', 8.0, 'Grab'),
+    mk(Math.max(1, today.getDate()-1), '购物', 128.9, '日用品'),
+    mk(today.getDate(), '外食', 15, '早餐 kopitiam'),
+    mk(1, '工资', 3500, '月薪', 'income'),
+  ];
+  save();
+}
+
+/* ============ UTIL ============ */
+function fmtDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function parseDate(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function fmtMoney(n, cur='$') {
+  const v = Number(n) || 0;
+  const abs = Math.abs(v);
+  const s = abs >= 1000 ? abs.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (abs % 1 ? '.' + abs.toFixed(2).split('.')[1] : '') : abs.toFixed(abs >= 10 ? (abs % 1 ? 2 : 0) : 2);
+  return `${cur} ${s}`;
+}
+function fmtShort(n) {
+  const v = Number(n) || 0;
+  if (v >= 1000) return v.toFixed(v >= 10000 ? 0 : 1);
+  if (v >= 100) return v.toFixed(v % 1 ? 2 : 0);
+  return v.toFixed(v % 1 ? 2 : 0);
+}
+const WEEK_ZH = ['日','一','二','三','四','五','六'];
+function toast(msg, ms=1800) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), ms);
+}
+const $ = (s, root=document) => root.querySelector(s);
+const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+
+/* ============ VIEW STATE ============ */
+const today = new Date();
+let currentView = 'calendar';
+let cursorYear = today.getFullYear();
+let cursorMonth = today.getMonth(); // 0-indexed
+let selectedDate = fmtDate(today);
+let pieChart = null;
+
+/* ============ RENDER: HEADER ============ */
+function renderHeader() {
+  $('#hdrMonth').textContent = `${cursorYear} / ${String(cursorMonth+1).padStart(2,'0')}`;
+  const now = new Date();
+  const nowY = now.getFullYear(), nowM = now.getMonth();
+  const diffM = (nowY - cursorYear) * 12 + (nowM - cursorMonth);
+  let sub;
+  if (diffM === 0) sub = '本月';
+  else if (diffM === 1) sub = '上个月';
+  else if (diffM === -1) sub = '下个月';
+  else if (diffM > 0) sub = `${diffM} 个月前`;
+  else sub = `${Math.abs(diffM)} 个月后`;
+  $('#hdrRel').textContent = sub;
+}
+
+/* ============ RENDER: CALENDAR ============ */
+function renderCalendar() {
+  const grid = $('#calGrid');
+  grid.innerHTML = '';
+  const firstDay = new Date(cursorYear, cursorMonth, 1);
+  const daysInMonth = new Date(cursorYear, cursorMonth+1, 0).getDate();
+  const startWeekday = firstDay.getDay(); // Sun = 0
+  const todayStr = fmtDate(today);
+  const monthPrefix = `${cursorYear}-${String(cursorMonth+1).padStart(2,'0')}`;
+  const monthTxns = state.transactions.filter(t => t.date.startsWith(monthPrefix));
+  const byDay = {};
+  monthTxns.forEach(t => {
+    const d = t.date.slice(-2);
+    if (!byDay[d]) byDay[d] = { expense: 0, income: 0 };
+    byDay[d][t.type] += Number(t.amount) || 0;
+  });
+  let monthTotalExpense = 0, monthTotalIncome = 0;
+  monthTxns.forEach(t => { if (t.type === 'expense') monthTotalExpense += +t.amount; else monthTotalIncome += +t.amount; });
+
+  // Empty cells before day 1
+  for (let i = 0; i < startWeekday; i++) {
+    const el = document.createElement('div');
+    el.className = 'day empty';
+    grid.appendChild(el);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = String(d).padStart(2, '0');
+    const info = byDay[key];
+    const dateStr = `${monthPrefix}-${key}`;
+    const el = document.createElement('div');
+    el.className = 'day';
+    if (info) el.classList.add('has-expense');
+    if (dateStr === todayStr) el.classList.add('today');
+    if (dateStr === selectedDate) el.classList.add('selected');
+    el.dataset.date = dateStr;
+    let inner = `<div class="day-num">${d}</div>`;
+    if (info) {
+      if (info.expense > 0) {
+        inner += `<div class="day-amt">$ ${fmtShort(info.expense)}</div>`;
+      } else if (info.income > 0) {
+        inner += `<div class="day-amt income">+${fmtShort(info.income)}</div>`;
+      }
+    }
+    // On last day show monthly negative total in accent red-like (like reference)
+    if (d === daysInMonth && monthTotalExpense > 0) {
+      inner += `<div class="month-total-mini">${fmtShort(monthTotalExpense)}</div>`;
+    }
+    el.innerHTML = inner;
+    el.addEventListener('click', () => {
+      selectedDate = dateStr;
+      renderCalendar();
+      renderDayDetail();
+    });
+    grid.appendChild(el);
+  }
+}
+
+/* ============ RENDER: DAY DETAIL ============ */
+function renderDayDetail() {
+  const d = parseDate(selectedDate);
+  const dayStr = `${String(d.getMonth()+1).padStart(2,'0')} / ${String(d.getDate()).padStart(2,'0')}`;
+  $('#ddDate').textContent = dayStr;
+  $('#ddWk').textContent = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+  const dayTxns = state.transactions
+    .filter(t => t.date === selectedDate)
+    .sort((a, b) => b.createdAt - a.createdAt);
+  const total = dayTxns.reduce((s, t) => s + (t.type === 'expense' ? +t.amount : 0), 0);
+  const income = dayTxns.reduce((s, t) => s + (t.type === 'income' ? +t.amount : 0), 0);
+  $('#ddTotal').innerHTML = total > 0 ? `<span style="color:var(--text-3)">支出</span> $ ${fmtShort(total)}` + (income>0 ? ` <span style="color:var(--income); margin-left:8px;">+${fmtShort(income)}</span>` : '') : (income > 0 ? `<span style="color:var(--income)">+${fmtShort(income)}</span>` : '');
+
+  const list = $('#txnList');
+  if (dayTxns.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-big">·</div><div class="empty-state-sub">这天还没记账，点右下 + 加一笔</div></div>`;
+    return;
+  }
+  list.innerHTML = dayTxns.map(t => {
+    const c = getCat(t.category, t.type);
+    const sign = t.type === 'income' ? '+' : '';
+    return `<div class="txn" data-id="${t.id}">
+      <div class="txn-icon" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
+      <div class="txn-body">
+        <div class="txn-cat">${t.category}</div>
+        <div class="txn-note">${t.note || (t.type === 'income' ? '收入' : '支出')}</div>
+      </div>
+      <div class="txn-amt ${t.type === 'income' ? 'income' : ''}">${sign}$ ${fmtShort(t.amount)}</div>
+    </div>`;
+  }).join('');
+  $$('.txn', list).forEach(el => {
+    el.addEventListener('click', () => openTxnActions(el.dataset.id));
+  });
+}
+
+/* ============ RENDER: CHART VIEW ============ */
+function renderChart() {
+  const monthPrefix = `${cursorYear}-${String(cursorMonth+1).padStart(2,'0')}`;
+  const monthTxns = state.transactions.filter(t => t.date.startsWith(monthPrefix));
+  const expenseTxns = monthTxns.filter(t => t.type === 'expense');
+  const incomeTxns = monthTxns.filter(t => t.type === 'income');
+  const totalExp = expenseTxns.reduce((s, t) => s + +t.amount, 0);
+  const totalIn = incomeTxns.reduce((s, t) => s + +t.amount, 0);
+  const bal = totalIn - totalExp;
+
+  $('#statTotal').textContent = fmtShort(totalExp);
+  $('#statIn').textContent = `$ ${fmtShort(totalIn)}`;
+  const balEl = $('#statBal');
+  balEl.textContent = `${bal >= 0 ? '' : '-'}$ ${fmtShort(Math.abs(bal))}`;
+  balEl.className = 'v ' + (bal >= 0 ? 'in' : 'out');
+  $('#chartCenterVal').textContent = `$ ${fmtShort(totalExp)}`;
+
+  // Group by cat
+  const byCat = {};
+  expenseTxns.forEach(t => {
+    if (!byCat[t.category]) byCat[t.category] = 0;
+    byCat[t.category] += +t.amount;
+  });
+  const sorted = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const labels = sorted.map(([k]) => k);
+  const values = sorted.map(([,v]) => v);
+  const colors = sorted.map(([k]) => getCat(k, 'expense').color);
+
+  // Pie chart
+  const canvas = $('#pieChart');
+  if (pieChart) pieChart.destroy();
+  if (values.length === 0) {
+    pieChart = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['无数据'],
+        datasets: [{ data: [1], backgroundColor: ['#f2f2f2'], borderWidth: 0 }],
+      },
+      options: {
+        cutout: '68%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        animation: { duration: 400 },
+      },
+    });
+  } else {
+    pieChart = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{ data: values, backgroundColor: colors, borderWidth: 3, borderColor: '#fff', hoverOffset: 6 }],
+      },
+      options: {
+        cutout: '68%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.label}: $ ${fmtShort(ctx.parsed)}`,
+            },
+          },
+        },
+        animation: { animateRotate: true, duration: 500 },
+      },
+    });
+  }
+
+  // Breakdown
+  const bd = $('#catBreakdown');
+  if (sorted.length === 0) {
+    bd.innerHTML = `<div class="empty-state"><div class="empty-state-big">·</div><div class="empty-state-sub">本月还没有支出记录</div></div>`;
+    return;
+  }
+  bd.innerHTML = sorted.map(([k, v]) => {
+    const c = getCat(k, 'expense');
+    const pct = totalExp > 0 ? (v / totalExp * 100) : 0;
+    return `<div class="cat-row">
+      <div class="cat-dot" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
+      <div class="cat-info">
+        <div class="cat-name">${k}</div>
+        <div class="cat-bar-outer"><div class="cat-bar-inner" style="width:${pct}%; background:${c.color}"></div></div>
+      </div>
+      <div class="cat-val">
+        <div class="cat-val-amt">$ ${fmtShort(v)}</div>
+        <div class="cat-val-pct">${pct.toFixed(1)}%</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============ SHEETS ============ */
+const sheets = ['sheetAdd', 'sheetManual', 'sheetVoice', 'sheetImport', 'sheetParsed', 'sheetMonth', 'sheetTxn'];
+let sheetStack = [];
+function openSheet(id) {
+  $('#sheetMask').classList.add('show');
+  $('#'+id).classList.add('show');
+  if (!sheetStack.includes(id)) sheetStack.push(id);
+}
+function closeSheet(id) {
+  if (!id) id = sheetStack.pop();
+  else sheetStack = sheetStack.filter(x => x !== id);
+  $('#'+id).classList.remove('show');
+  if (sheetStack.length === 0) $('#sheetMask').classList.remove('show');
+}
+function closeAllSheets() {
+  sheetStack = [];
+  $('#sheetMask').classList.remove('show');
+  sheets.forEach(id => $('#'+id).classList.remove('show'));
+}
+$('#sheetMask').addEventListener('click', closeAllSheets);
+document.addEventListener('click', (e) => {
+  if (e.target.matches('[data-close]')) {
+    const sheet = e.target.closest('.sheet');
+    if (sheet) closeSheet(sheet.id);
+  }
+});
+
+/* ============ ADD FLOW ============ */
+$('#fabAdd').addEventListener('click', () => openSheet('sheetAdd'));
+$$('.add-opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.add;
+    closeSheet('sheetAdd');
+    setTimeout(() => {
+      if (type === 'manual') openManual();
+      else if (type === 'voice') openVoice();
+      else if (type === 'import') openImport();
+    }, 250);
+  });
+});
+
+/* ============ MANUAL FORM ============ */
+let manualState = { type: 'expense', category: null, editingId: null };
+function openManual(prefill = null) {
+  manualState = { type: 'expense', category: null, editingId: null };
+  if (prefill) {
+    manualState.type = prefill.type || 'expense';
+    manualState.category = prefill.category || null;
+    manualState.editingId = prefill.id || null;
+    $('#amtInput').value = prefill.amount != null ? String(prefill.amount) : '';
+    $('#noteInput').value = prefill.note || '';
+    $('#dateInput').value = prefill.date || selectedDate;
+    $('#manualTitle').textContent = prefill.id ? '编辑' : '记一笔';
+  } else {
+    $('#amtInput').value = '';
+    $('#noteInput').value = '';
+    $('#dateInput').value = selectedDate;
+    $('#manualTitle').textContent = '记一笔';
+  }
+  renderTypeToggle();
+  renderCatPicker();
+  openSheet('sheetManual');
+  setTimeout(() => $('#amtInput').focus(), 320);
+}
+function renderTypeToggle() {
+  $$('.type-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.type === manualState.type);
+  });
+}
+$$('.type-toggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    manualState.type = b.dataset.type;
+    manualState.category = null;
+    renderTypeToggle();
+    renderCatPicker();
+  });
+});
+function renderCatPicker() {
+  const cats = CATS[manualState.type];
+  const container = $('#catPicker');
+  container.innerHTML = cats.map(c => `
+    <button class="cat-pick ${manualState.category === c.key ? 'active' : ''}" data-cat="${c.key}">
+      <div class="cat-pick-icon" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
+      <div class="cat-pick-name">${c.key}</div>
+    </button>
+  `).join('');
+  $$('.cat-pick', container).forEach(el => {
+    el.addEventListener('click', () => {
+      manualState.category = el.dataset.cat;
+      renderCatPicker();
+    });
+  });
+}
+$('#manualSave').addEventListener('click', () => {
+  const amt = parseFloat($('#amtInput').value);
+  if (!(amt > 0)) return toast('金额不太对');
+  if (!manualState.category) return toast('选一个分类');
+  const date = $('#dateInput').value || selectedDate;
+  const note = $('#noteInput').value.trim();
+  if (manualState.editingId) {
+    const t = state.transactions.find(t => t.id === manualState.editingId);
+    if (t) {
+      t.type = manualState.type;
+      t.category = manualState.category;
+      t.amount = amt;
+      t.note = note;
+      t.date = date;
+    }
+    toast('已更新');
+  } else {
+    state.transactions.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+      type: manualState.type,
+      category: manualState.category,
+      amount: amt,
+      note,
+      date,
+      createdAt: Date.now(),
+    });
+    toast('已记账 ✓');
+  }
+  save();
+  selectedDate = date;
+  const d = parseDate(date);
+  cursorYear = d.getFullYear();
+  cursorMonth = d.getMonth();
+  closeSheet('sheetManual');
+  renderAll();
+});
+
+/* ============ TXN ACTIONS ============ */
+let actingTxnId = null;
+function openTxnActions(id) {
+  actingTxnId = id;
+  const t = state.transactions.find(t => t.id === id);
+  if (!t) return;
+  $('#txnActTitle').textContent = `${t.category} · ${t.type === 'income' ? '+' : ''}$ ${fmtShort(t.amount)}`;
+  openSheet('sheetTxn');
+}
+$('#txnEdit').addEventListener('click', () => {
+  const t = state.transactions.find(t => t.id === actingTxnId);
+  if (!t) return;
+  closeSheet('sheetTxn');
+  setTimeout(() => openManual(t), 250);
+});
+$('#txnDelete').addEventListener('click', () => {
+  state.transactions = state.transactions.filter(t => t.id !== actingTxnId);
+  save();
+  closeSheet('sheetTxn');
+  renderAll();
+  toast('已删除');
+});
+
+/* ============ VOICE ============ */
+let recognition = null;
+let recognizing = false;
+let voiceText = '';
+function initSpeech() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = 'zh-CN';
+  r.continuous = true;
+  r.interimResults = true;
+  return r;
+}
+function openVoice() {
+  voiceText = '';
+  $('#voiceTranscript').textContent = '试试说："今天午饭 25 块 麦当劳"';
+  $('#voiceTranscript').classList.add('placeholder');
+  $('#voiceStatus').textContent = '点按开始说话';
+  $('#voiceParse').disabled = true;
+  $('#micBtn').classList.remove('recording');
+  openSheet('sheetVoice');
+}
+$('#micBtn').addEventListener('click', () => {
+  if (!recognition) recognition = initSpeech();
+  if (!recognition) {
+    // Fallback: let user type
+    const t = prompt('浏览器不支持语音识别，试试直接输入吧（例如：午饭 25 块 麦当劳）');
+    if (t) {
+      voiceText = t.trim();
+      $('#voiceTranscript').textContent = voiceText;
+      $('#voiceTranscript').classList.remove('placeholder');
+      $('#voiceParse').disabled = !voiceText;
+    }
+    return;
+  }
+  if (recognizing) {
+    recognition.stop();
+    return;
+  }
+  let finalText = voiceText;
+  recognition.onstart = () => {
+    recognizing = true;
+    $('#micBtn').classList.add('recording');
+    $('#voiceStatus').textContent = '正在听… 再点一下结束';
+  };
+  recognition.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const s = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finalText += s;
+      else interim += s;
+    }
+    const shown = (finalText + interim).trim();
+    if (shown) {
+      $('#voiceTranscript').textContent = shown;
+      $('#voiceTranscript').classList.remove('placeholder');
+      $('#voiceParse').disabled = false;
+    }
+  };
+  recognition.onerror = (e) => {
+    recognizing = false;
+    $('#micBtn').classList.remove('recording');
+    $('#voiceStatus').textContent = '出错啦：' + (e.error || '未知');
+  };
+  recognition.onend = () => {
+    recognizing = false;
+    $('#micBtn').classList.remove('recording');
+    voiceText = finalText.trim();
+    $('#voiceStatus').textContent = voiceText ? '好了，点下面 AI 解析' : '没听清，再试一次';
+  };
+  try { recognition.start(); }
+  catch (err) { toast('语音启动失败'); }
+});
+$('#voiceClear').addEventListener('click', () => {
+  voiceText = '';
+  $('#voiceTranscript').textContent = '试试说："今天午饭 25 块 麦当劳"';
+  $('#voiceTranscript').classList.add('placeholder');
+  $('#voiceParse').disabled = true;
+  $('#voiceStatus').textContent = '点按开始说话';
+});
+$('#voiceParse').addEventListener('click', async () => {
+  if (!voiceText) return;
+  $('#voiceParse').disabled = true;
+  $('#voiceParse').innerHTML = '<span class="spinner"></span> 解析中';
+  try {
+    const items = await parseTextToTxns(voiceText);
+    $('#voiceParse').innerHTML = 'AI 解析';
+    $('#voiceParse').disabled = false;
+    if (!items || items.length === 0) return toast('没解析出账目');
+    closeSheet('sheetVoice');
+    setTimeout(() => showParsed(items), 250);
+  } catch (e) {
+    console.error(e);
+    $('#voiceParse').innerHTML = 'AI 解析';
+    $('#voiceParse').disabled = false;
+    toast(claudeErrCopy(e));
+  }
+});
+
+/* ============ IMPORT ============ */
+let importFiles = []; // {file, kind: 'image'|'pdf', preview?}
+function openImport() {
+  importFiles = [];
+  $('#filePreview').innerHTML = '';
+  $('#parseBtn').disabled = true;
+  $('#parseBtnText').textContent = 'AI 解析账单';
+  openSheet('sheetImport');
+}
+['imgInput','camInput'].forEach(id => {
+  $('#'+id).addEventListener('change', (e) => {
+    const files = [...e.target.files];
+    files.forEach(f => importFiles.push({ file: f, kind: 'image' }));
+    e.target.value = '';
+    renderFilePreview();
+  });
+});
+$('#pdfInput').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (f) importFiles.push({ file: f, kind: 'pdf' });
+  e.target.value = '';
+  renderFilePreview();
+});
+// Drag & drop
+const dz = $('#dropZone');
+;['dragover','dragenter'].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag'); }));
+;['dragleave','drop'].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('drag'); }));
+dz.addEventListener('drop', (e) => {
+  const files = [...(e.dataTransfer?.files || [])];
+  files.forEach(f => {
+    if (f.type === 'application/pdf') importFiles.push({ file: f, kind: 'pdf' });
+    else if (f.type.startsWith('image/')) importFiles.push({ file: f, kind: 'image' });
+  });
+  renderFilePreview();
+});
+
+function renderFilePreview() {
+  const wrap = $('#filePreview');
+  wrap.innerHTML = '';
+  importFiles.forEach((it, idx) => {
+    if (it.kind === 'image') {
+      const url = URL.createObjectURL(it.file);
+      const row = document.createElement('div');
+      row.className = 'file-info';
+      row.innerHTML = `<img src="${url}" style="width:44px; height:44px; object-fit:cover; border-radius:8px;">
+        <div class="file-info-name">${it.file.name}</div>
+        <button class="file-info-remove" data-i="${idx}">×</button>`;
+      wrap.appendChild(row);
+    } else {
+      const row = document.createElement('div');
+      row.className = 'file-info';
+      row.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="file-info-name">${it.file.name}</div>
+        <button class="file-info-remove" data-i="${idx}">×</button>`;
+      wrap.appendChild(row);
+    }
+  });
+  $$('.file-info-remove', wrap).forEach(b => {
+    b.addEventListener('click', () => {
+      importFiles.splice(+b.dataset.i, 1);
+      renderFilePreview();
+    });
+  });
+  $('#parseBtn').disabled = importFiles.length === 0;
+}
+
+$('#parseBtn').addEventListener('click', async () => {
+  if (importFiles.length === 0) return;
+  $('#parseBtn').disabled = true;
+  $('#parseBtnText').innerHTML = '<span class="spinner"></span> 正在读账单…';
+  try {
+    // Convert PDFs to image blobs (page 1..N up to 3)
+    const images = [];
+    for (const it of importFiles) {
+      if (it.kind === 'image') {
+        images.push(it.file);
+      } else {
+        // pdf
+        const blobs = await pdfToImages(it.file, 5);
+        blobs.forEach(b => images.push(b));
+      }
+    }
+    if (images.length === 0) throw { code: 'no_image' };
+    const items = await parseImagesToTxns(images);
+    $('#parseBtnText').textContent = 'AI 解析账单';
+    $('#parseBtn').disabled = false;
+    if (!items || items.length === 0) return toast('没解析出账目');
+    closeSheet('sheetImport');
+    setTimeout(() => showParsed(items), 250);
+  } catch (e) {
+    console.error(e);
+    $('#parseBtnText').textContent = 'AI 解析账单';
+    $('#parseBtn').disabled = false;
+    toast(claudeErrCopy(e));
+  }
+});
+
+async function pdfToImages(file, maxPages = 3) {
+  const pdfjs = window.__pdfjs;
+  if (!pdfjs) throw new Error('pdf.js not ready');
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+  const n = Math.min(doc.numPages, maxPages);
+  const blobs = [];
+  for (let i = 1; i <= n; i++) {
+    const page = await doc.getPage(i);
+    const viewport = page.getViewport({ scale: 1.6 });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.min(viewport.width, 1600);
+    canvas.height = Math.min(viewport.height, 1600);
+    const ratio = Math.min(canvas.width / viewport.width, canvas.height / viewport.height);
+    const scaled = page.getViewport({ scale: 1.6 * ratio });
+    canvas.width = scaled.width;
+    canvas.height = scaled.height;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
+    if (blob) blobs.push(blob);
+  }
+  return blobs;
+}
+
+/* ============ AI PARSING (via /api serverless functions) ============ */
+
+async function parseTextToTxns(text) {
+  const res = await fetch('/api/parse-text', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text,
+      today: fmtDate(new Date()),
+      expense_categories: CATS.expense.map(c => c.key),
+      income_categories: CATS.income.map(c => c.key),
+    }),
+  });
+  if (!res.ok) {
+    let body = null;
+    try { body = await res.json(); } catch {}
+    throw { code: body?.code || (res.status === 401 ? 'no_key' : 'server_error'), message: body?.error };
+  }
+  const data = await res.json();
+  const items = Array.isArray(data) ? data : (data.items || []);
+  return normalizeItems(items);
+}
+
+async function parseImagesToTxns(blobs) {
+  // Resize images client-side to keep request small
+  const images = [];
+  const use = blobs.slice(0, 4); // cap at 4 to stay within serverless body limits
+  for (const b of use) {
+    const enc = await resizeBlobToBase64Jpeg(b, 1400, 0.85);
+    images.push(enc);
+  }
+  const res = await fetch('/api/parse-images', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      images,
+      today: fmtDate(new Date()),
+      expense_categories: CATS.expense.map(c => c.key),
+      income_categories: CATS.income.map(c => c.key),
+    }),
+  });
+  if (!res.ok) {
+    let body = null;
+    try { body = await res.json(); } catch {}
+    throw { code: body?.code || (res.status === 401 ? 'no_key' : res.status === 413 ? 'too_large' : 'server_error'), message: body?.error };
+  }
+  const data = await res.json();
+  const items = Array.isArray(data) ? data : (data.items || []);
+  return normalizeItems(items);
+}
+
+async function resizeBlobToBase64Jpeg(blob, maxDim = 1400, quality = 0.85) {
+  const img = await createImageBitmap(blob);
+  let w = img.width, h = img.height;
+  const longest = Math.max(w, h);
+  if (longest > maxDim) {
+    const r = maxDim / longest;
+    w = Math.round(w * r);
+    h = Math.round(h * r);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  const outBlob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+  const buf = await outBlob.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return { media_type: 'image/jpeg', data: btoa(binary) };
+}
+
+function normalizeItems(items) {
+  const out = [];
+  const today = fmtDate(new Date());
+  for (const it of items || []) {
+    if (!it) continue;
+    const type = (it.type === 'income') ? 'income' : 'expense';
+    const cats = CATS[type];
+    let cat = it.category;
+    if (!cats.find(c => c.key === cat)) cat = cats[cats.length - 1].key; // 其他
+    const amt = Number(String(it.amount ?? '').replace(/[^\d.\-]/g, '')) || 0;
+    if (!(amt > 0)) continue;
+    let date = it.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) date = today;
+    out.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+      type, category: cat, amount: amt,
+      note: (it.note || '').toString().slice(0, 60),
+      date,
+      createdAt: Date.now(),
+      include: true,
+    });
+  }
+  return out;
+}
+
+function naiveTextParse(text) {
+  // very rough fallback if no AI
+  const m = text.match(/(\d+(?:\.\d+)?)/);
+  if (!m) return [];
+  const amt = parseFloat(m[1]);
+  const t = /收入|工资|退款|红包/.test(text) ? 'income' : 'expense';
+  const cats = CATS[t];
+  let cat = '其他';
+  const kws = {
+    '外食': ['吃','饭','餐','麦','肯','早饭','午饭','晚饭','奶茶','咖啡','kopi'],
+    '交通': ['打车','grab','车','油','停车','地铁','公交'],
+    '购物': ['买','shopee','lazada','商场','买了'],
+    '生活': ['水电','房租','日用'],
+    '娱乐': ['电影','游戏','ktv'],
+  };
+  for (const [k, ws] of Object.entries(kws)) {
+    if (ws.some(w => text.includes(w))) { cat = k; break; }
+  }
+  return [{
+    id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+    type: t, category: cat, amount: amt, note: text.slice(0, 40),
+    date: fmtDate(new Date()), createdAt: Date.now(), include: true,
+  }];
+}
+
+function claudeErrCopy(e) {
+  if (!e) return '出错了';
+  if (e.code === 'no_key') return '服务端没设置 API key，看 README';
+  if (e.code === 'rate_limited') return '用得太快啦，稍等一下';
+  if (e.code === 'too_large') return '图片太大，试试拍小张一点';
+  if (e.code === 'refused') return 'AI 拒绝了这个请求';
+  if (e.code === 'invalid_json') return 'AI 回复格式不对，再试一次';
+  if (e.code === 'server_error') return '服务端出错了，看看控制台';
+  if (e.code === 'no_image') return '没有可以解析的图片';
+  return '解析失败，试试手动记';
+}
+
+/* ============ PARSED CONFIRM ============ */
+let parsedItems = [];
+function showParsed(items) {
+  parsedItems = items;
+  renderParsed();
+  openSheet('sheetParsed');
+}
+function renderParsed() {
+  const list = $('#parsedList');
+  const total = parsedItems.filter(x => x.include).length;
+  $('#parsedHint').textContent = `识别到 ${parsedItems.length} 条，勾选 ${total} 条，点按可切换`;
+  list.innerHTML = parsedItems.map((it, i) => {
+    const c = getCat(it.category, it.type);
+    return `<div class="parsed-item ${it.include ? '' : 'exclude'}" data-i="${i}">
+      <div class="parsed-check">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="txn-icon" style="width:36px;height:36px;font-size:18px;background:${c.color}22; color:${c.color}">${c.icon}</div>
+      <div class="parsed-body">
+        <div class="parsed-body-row">
+          <div class="parsed-cat">${it.category}</div>
+          <div class="parsed-amt ${it.type === 'income' ? 'income' : ''}">${it.type === 'income' ? '+' : ''}$ ${fmtShort(it.amount)}</div>
+        </div>
+        <div class="parsed-meta">${it.date} · ${it.note || (it.type === 'income' ? '收入' : '支出')}</div>
+      </div>
+    </div>`;
+  }).join('');
+  $$('.parsed-item', list).forEach(el => {
+    el.addEventListener('click', () => {
+      const i = +el.dataset.i;
+      parsedItems[i].include = !parsedItems[i].include;
+      renderParsed();
+    });
+  });
+}
+$('#parsedSave').addEventListener('click', () => {
+  const kept = parsedItems.filter(x => x.include);
+  if (kept.length === 0) return toast('没有勾选');
+  kept.forEach(it => {
+    delete it.include;
+    state.transactions.push(it);
+  });
+  save();
+  closeSheet('sheetParsed');
+  renderAll();
+  toast(`记了 ${kept.length} 笔 ✓`);
+});
+
+/* ============ MONTH PICKER ============ */
+function openMonthPicker() {
+  const list = $('#monthList');
+  list.innerHTML = '';
+  const nowY = new Date().getFullYear();
+  const startY = Math.min(cursorYear, nowY) - 2;
+  const endY = Math.max(cursorYear, nowY) + 1;
+  const cells = [];
+  for (let y = endY; y >= startY; y--) {
+    cells.push(`<div class="year-header">${y}</div>`);
+    for (let m = 0; m < 12; m++) {
+      const isNow = (y === nowY && m === new Date().getMonth());
+      const isSel = (y === cursorYear && m === cursorMonth);
+      const cls = 'month-cell' + (isNow ? ' current' : '') + (isSel && !isNow ? ' selected' : '');
+      cells.push(`<div class="${cls}" data-y="${y}" data-m="${m}">${String(m+1).padStart(2,'0')} 月</div>`);
+    }
+  }
+  list.innerHTML = cells.join('');
+  $$('.month-cell', list).forEach(el => {
+    el.addEventListener('click', () => {
+      cursorYear = +el.dataset.y;
+      cursorMonth = +el.dataset.m;
+      selectedDate = fmtDate(new Date(cursorYear, cursorMonth, Math.min(new Date().getDate(), new Date(cursorYear, cursorMonth+1, 0).getDate())));
+      closeSheet('sheetMonth');
+      renderAll();
+    });
+  });
+  openSheet('sheetMonth');
+  // scroll current row into view
+  setTimeout(() => {
+    const cur = list.querySelector('.month-cell.current, .month-cell.selected');
+    cur?.scrollIntoView({ block: 'center' });
+  }, 100);
+}
+$('#btnMonthPick').addEventListener('click', openMonthPicker);
+$('#monthGoToday').addEventListener('click', () => {
+  const now = new Date();
+  cursorYear = now.getFullYear();
+  cursorMonth = now.getMonth();
+  selectedDate = fmtDate(now);
+  closeSheet('sheetMonth');
+  renderAll();
+});
+$('#btnToday').addEventListener('click', () => {
+  const now = new Date();
+  cursorYear = now.getFullYear();
+  cursorMonth = now.getMonth();
+  selectedDate = fmtDate(now);
+  renderAll();
+});
+
+/* ============ VIEW SWITCH ============ */
+$$('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentView = btn.dataset.view;
+    $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === currentView));
+    renderView();
+  });
+});
+$('#btnViewToggle').addEventListener('click', () => {
+  currentView = currentView === 'calendar' ? 'chart' : 'calendar';
+  $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === currentView));
+  renderView();
+});
+function renderView() {
+  $('#viewCalendar').classList.toggle('hidden', currentView !== 'calendar');
+  $('#viewChart').classList.toggle('hidden', currentView !== 'chart');
+  if (currentView === 'chart') renderChart();
+  const icon = $('#iconChart');
+  if (currentView === 'calendar') {
+    icon.innerHTML = '<path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/>';
+  } else {
+    icon.innerHTML = '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>';
+  }
+}
+
+/* ============ RENDER ALL ============ */
+function renderAll() {
+  renderHeader();
+  renderCalendar();
+  renderDayDetail();
+  if (currentView === 'chart') renderChart();
+}
+renderAll();
+</script>
+</body>
+</html>
