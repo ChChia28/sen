@@ -1,13 +1,6 @@
 {
   "name": "sen",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Sen — voice & receipt-based expense tracker",
-  "type": "module",
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "@google/genai": "^2.23.0"
-  }
+  "description": "Sen — 记账 expense tracker (manual entry + Excel/CSV/TXT/JSON import + JSON backup)"
 }

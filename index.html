@@ -536,69 +536,32 @@
     letter-spacing: 0.4px;
   }
 
-  /* ============== VOICE ============== */
-  .voice-body { padding: 20px; text-align: center; }
-  .mic-wrap {
-    width: 140px; height: 140px;
-    border-radius: 50%;
-    background: var(--accent-bg);
-    display: flex; align-items: center; justify-content: center;
-    margin: 20px auto;
-    position: relative;
-    transition: transform .2s;
-  }
-  .mic-wrap.recording {
-    animation: pulse 1.4s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(94,194,194,.45); }
-    50% { box-shadow: 0 0 0 30px rgba(94,194,194,0); }
-  }
-  .mic-icon {
-    width: 60px; height: 60px;
-    color: var(--accent);
-  }
-  .mic-wrap.recording .mic-icon { color: var(--accent-dark); }
-  .voice-status {
-    font-size: 15px;
-    color: var(--text-2);
-    margin-top: 10px;
-    min-height: 22px;
-  }
-  .voice-transcript {
-    min-height: 80px;
-    padding: 16px;
-    background: var(--card-2);
-    border-radius: 16px;
-    margin: 20px 12px;
-    text-align: left;
-    font-size: 15px;
-    line-height: 1.5;
-    color: var(--text);
-  }
-  .voice-transcript.placeholder { color: var(--text-3); text-align: center; }
-  .voice-actions {
-    display: flex; gap: 12px;
-    padding: 0 12px 8px;
-  }
-  .voice-actions button {
-    flex: 1;
+  /* ============== BUTTONS ============== */
+  .btn-primary {
+    background: var(--accent);
+    color: white;
     padding: 14px;
     border-radius: 14px;
     font-size: 15px;
     font-weight: 600;
     transition: background .15s;
   }
-  .btn-primary {
-    background: var(--accent);
-    color: white;
-  }
   .btn-primary:active { background: var(--accent-dark); }
   .btn-primary:disabled { background: var(--text-4); color: white; }
   .btn-secondary {
     background: var(--card-2);
     color: var(--text-2);
+    padding: 14px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background .15s;
   }
+  .btn-row {
+    display: flex; gap: 12px;
+    padding: 0 12px 8px;
+  }
+  .btn-row button { flex: 1; }
 
   /* ============== IMPORT ============== */
   .import-body { padding: 8px 20px 20px; }
@@ -906,22 +869,22 @@
         <div class="add-opt-sub">输入金额和分类</div>
       </div>
     </button>
-    <button class="add-opt" data-add="voice">
-      <div class="add-opt-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-      </div>
-      <div class="add-opt-body">
-        <div class="add-opt-title">语音记账</div>
-        <div class="add-opt-sub">说一句，AI 帮你记</div>
-      </div>
-    </button>
     <button class="add-opt" data-add="import">
       <div class="add-opt-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       </div>
       <div class="add-opt-body">
         <div class="add-opt-title">导入账单</div>
-        <div class="add-opt-sub">上传 Excel / CSV 账单，自动记账</div>
+        <div class="add-opt-sub">上传 Excel / CSV / TXT / JSON，自动记账</div>
+      </div>
+    </button>
+    <button class="add-opt" data-add="backup">
+      <div class="add-opt-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/><path d="M4 4h16"/></svg>
+      </div>
+      <div class="add-opt-body">
+        <div class="add-opt-title">数据备份</div>
+        <div class="add-opt-sub">导出 / 导入 JSON 备份</div>
       </div>
     </button>
   </div>
@@ -957,29 +920,6 @@
   </div>
 </div>
 
-<!-- Voice -->
-<div class="sheet" id="sheetVoice">
-  <div class="sheet-handle"></div>
-  <div class="sheet-head">
-    <button class="sheet-close" data-close>关闭</button>
-    <div class="sheet-title">语音记账</div>
-    <span style="width:40px;"></span>
-  </div>
-  <div class="voice-body">
-    <button class="mic-wrap" id="micBtn">
-      <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-      </svg>
-    </button>
-    <div class="voice-status" id="voiceStatus">点按开始说话</div>
-    <div class="voice-transcript placeholder" id="voiceTranscript">试试说："今天午饭 25 块 麦当劳"</div>
-  </div>
-  <div class="voice-actions">
-    <button class="btn-secondary" id="voiceClear">清空</button>
-    <button class="btn-primary" id="voiceParse" disabled>AI 解析</button>
-  </div>
-</div>
-
 <!-- Import -->
 <div class="sheet" id="sheetImport">
   <div class="sheet-handle"></div>
@@ -994,20 +934,47 @@
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
       </svg>
       <div class="drop-zone-title">拖到这里，或选择文件</div>
-      <div class="drop-zone-sub">支持 Excel (.xlsx) / CSV / TXT 账单导出</div>
+      <div class="drop-zone-sub">支持 Excel (.xlsx / .xls) / CSV / TXT / JSON</div>
     </div>
     <label class="file-btn" for="fileInput" style="width:100%; padding:14px; margin: 0 0 12px;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <span>选择文件</span>
     </label>
-    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.txt,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none">
-    <div style="font-size:12px; color:var(--text-2); background:var(--card-2); padding:12px 14px; border-radius:12px; margin-bottom:16px; line-height:1.55;">
-      💡 大部分银行 (Maybank M2U、CIMB Clicks、PBB、HL) 和电子钱包 (TNG、Boost、GrabPay) 都能导出 CSV / Excel 账单。上传后自动识别日期、商家、金额，按关键词分类。
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.txt,.json,text/csv,text/plain,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none">
+    <div style="font-size:12px; color:var(--text-2); background:var(--card-2); padding:12px 14px; border-radius:12px; margin-bottom:16px; line-height:1.6;">
+      💡 银行 (Maybank、CIMB、PBB、HL) 和电子钱包 (TNG、Boost、GrabPay) 一般都能导出 CSV / Excel 账单，会自动识别日期、商家、金额。<br><br>
+      也能让 AI (ChatGPT / Gemini / Claude) 把账单图片或 PDF 转成 JSON 再上传，格式：<br>
+      <code style="font-size:11px; color:var(--accent); background:transparent;">[{"date":"2026-09-20","amount":15.50,"description":"Starbucks","type":"expense","category":"外食"}]</code>
     </div>
     <div class="file-preview" id="filePreview"></div>
     <button class="parse-btn" id="parseBtn" disabled>
       <span id="parseBtnText">读取账单</span>
     </button>
+  </div>
+</div>
+
+<!-- Backup / Restore -->
+<div class="sheet" id="sheetBackup">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>关闭</button>
+    <div class="sheet-title">数据备份</div>
+    <span style="width:40px;"></span>
+  </div>
+  <div class="import-body">
+    <div style="font-size:13px; color:var(--text-2); background:var(--card-2); padding:14px 16px; border-radius:14px; margin: 4px 0 20px; line-height:1.6;">
+      导出会把所有账目保存成一份 JSON 文件，存到手机就行。<br>
+      导入会 <b>覆盖</b> 现在的数据（换手机 / 重装浏览器 / 清了缓存都能恢复）。
+    </div>
+
+    <div style="font-size:12px; color:var(--text-3); margin: 0 4px 6px;">当前账目数量</div>
+    <div style="font-size:32px; font-weight:800; letter-spacing:-1px; margin: 0 4px 20px;" id="backupCount">0 笔</div>
+
+    <div class="btn-row" style="padding: 0; gap: 12px;">
+      <button class="btn-secondary" id="backupImport">导入备份</button>
+      <button class="btn-primary" id="backupExport">导出备份</button>
+    </div>
+    <input type="file" id="backupFileInput" accept=".json,application/json" style="display:none">
   </div>
 </div>
 
@@ -1349,7 +1316,7 @@ function renderChart() {
 }
 
 /* ============ SHEETS ============ */
-const sheets = ['sheetAdd', 'sheetManual', 'sheetVoice', 'sheetImport', 'sheetParsed', 'sheetMonth', 'sheetTxn'];
+const sheets = ['sheetAdd', 'sheetManual', 'sheetImport', 'sheetBackup', 'sheetParsed', 'sheetMonth', 'sheetTxn'];
 let sheetStack = [];
 function openSheet(id) {
   $('#sheetMask').classList.add('show');
@@ -1383,8 +1350,8 @@ $$('.add-opt').forEach(btn => {
     closeSheet('sheetAdd');
     setTimeout(() => {
       if (type === 'manual') openManual();
-      else if (type === 'voice') openVoice();
       else if (type === 'import') openImport();
+      else if (type === 'backup') openBackup();
     }, 250);
   });
 });
@@ -1501,106 +1468,86 @@ $('#txnDelete').addEventListener('click', () => {
   toast('已删除');
 });
 
-/* ============ VOICE ============ */
-let recognition = null;
-let recognizing = false;
-let voiceText = '';
-function initSpeech() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return null;
-  const r = new SR();
-  r.lang = 'zh-CN';
-  r.continuous = true;
-  r.interimResults = true;
-  return r;
+/* ============ BACKUP / RESTORE ============ */
+const BACKUP_VERSION = 1;
+function openBackup() {
+  const n = (state.transactions || []).length;
+  $('#backupCount').textContent = n + ' 笔';
+  openSheet('sheetBackup');
 }
-function openVoice() {
-  voiceText = '';
-  $('#voiceTranscript').textContent = '试试说："今天午饭 25 块 麦当劳"';
-  $('#voiceTranscript').classList.add('placeholder');
-  $('#voiceStatus').textContent = '点按开始说话';
-  $('#voiceParse').disabled = true;
-  $('#micBtn').classList.remove('recording');
-  openSheet('sheetVoice');
-}
-$('#micBtn').addEventListener('click', () => {
-  if (!recognition) recognition = initSpeech();
-  if (!recognition) {
-    // Fallback: let user type
-    const t = prompt('浏览器不支持语音识别，试试直接输入吧（例如：午饭 25 块 麦当劳）');
-    if (t) {
-      voiceText = t.trim();
-      $('#voiceTranscript').textContent = voiceText;
-      $('#voiceTranscript').classList.remove('placeholder');
-      $('#voiceParse').disabled = !voiceText;
-    }
-    return;
-  }
-  if (recognizing) {
-    recognition.stop();
-    return;
-  }
-  let finalText = voiceText;
-  recognition.onstart = () => {
-    recognizing = true;
-    $('#micBtn').classList.add('recording');
-    $('#voiceStatus').textContent = '正在听… 再点一下结束';
-  };
-  recognition.onresult = (e) => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const s = e.results[i][0].transcript;
-      if (e.results[i].isFinal) finalText += s;
-      else interim += s;
-    }
-    const shown = (finalText + interim).trim();
-    if (shown) {
-      $('#voiceTranscript').textContent = shown;
-      $('#voiceTranscript').classList.remove('placeholder');
-      $('#voiceParse').disabled = false;
-    }
-  };
-  recognition.onerror = (e) => {
-    recognizing = false;
-    $('#micBtn').classList.remove('recording');
-    $('#voiceStatus').textContent = '出错啦：' + (e.error || '未知');
-  };
-  recognition.onend = () => {
-    recognizing = false;
-    $('#micBtn').classList.remove('recording');
-    voiceText = finalText.trim();
-    $('#voiceStatus').textContent = voiceText ? '好了，点下面 AI 解析' : '没听清，再试一次';
-  };
-  try { recognition.start(); }
-  catch (err) { toast('语音启动失败'); }
-});
-$('#voiceClear').addEventListener('click', () => {
-  voiceText = '';
-  $('#voiceTranscript').textContent = '试试说："今天午饭 25 块 麦当劳"';
-  $('#voiceTranscript').classList.add('placeholder');
-  $('#voiceParse').disabled = true;
-  $('#voiceStatus').textContent = '点按开始说话';
-});
-$('#voiceParse').addEventListener('click', async () => {
-  if (!voiceText) return;
-  $('#voiceParse').disabled = true;
-  $('#voiceParse').innerHTML = '<span class="spinner"></span> 解析中';
+$('#backupExport').addEventListener('click', () => {
   try {
-    const items = await parseTextToTxns(voiceText);
-    $('#voiceParse').innerHTML = 'AI 解析';
-    $('#voiceParse').disabled = false;
-    if (!items || items.length === 0) return toast('没解析出账目');
-    closeSheet('sheetVoice');
-    setTimeout(() => showParsed(items), 250);
+    const payload = {
+      app: 'sen',
+      version: BACKUP_VERSION,
+      exportedAt: new Date().toISOString(),
+      transactions: state.transactions || [],
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = fmtDate(new Date());
+    a.href = url;
+    a.download = `sen-backup-${today}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+    toast('已导出 ' + payload.transactions.length + ' 笔');
   } catch (e) {
     console.error(e);
-    $('#voiceParse').innerHTML = 'AI 解析';
-    $('#voiceParse').disabled = false;
-    toast(claudeErrCopy(e));
+    toast('导出失败：' + (e.message || e));
+  }
+});
+$('#backupImport').addEventListener('click', () => {
+  $('#backupFileInput').click();
+});
+$('#backupFileInput').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try {
+    const text = await f.text();
+    const data = JSON.parse(text);
+    const txns = Array.isArray(data) ? data : (data.transactions || []);
+    if (!Array.isArray(txns)) throw new Error('文件里没找到 transactions 数组');
+    // Light validation: each item needs amount + type + date
+    const cleaned = [];
+    for (const it of txns) {
+      if (!it || typeof it !== 'object') continue;
+      const type = (it.type === 'income') ? 'income' : 'expense';
+      const amt = Number(it.amount);
+      if (!(amt > 0)) continue;
+      let date = it.date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) date = fmtDate(new Date());
+      const cats = CATS[type];
+      let cat = it.category;
+      if (!cats.find(c => c.key === cat)) cat = cats[cats.length - 1].key;
+      cleaned.push({
+        id: it.id || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
+        type, category: cat, amount: amt,
+        note: String(it.note || '').slice(0, 60),
+        date,
+        createdAt: Number(it.createdAt) || Date.now(),
+      });
+    }
+    if (cleaned.length === 0) {
+      return toast('文件里没有有效账目');
+    }
+    const currentCount = (state.transactions || []).length;
+    const ok = confirm(`要用 ${cleaned.length} 笔记录替换现在的 ${currentCount} 笔吗？此操作无法撤销。`);
+    if (!ok) return;
+    state.transactions = cleaned;
+    save();
+    renderAll();
+    $('#backupCount').textContent = cleaned.length + ' 笔';
+    toast('已恢复 ' + cleaned.length + ' 笔');
+  } catch (err) {
+    console.error(err);
+    toast('导入失败：' + (err.message || err));
   }
 });
 
-/* ============ IMPORT (CSV / Excel / TXT) ============ */
+/* ============ IMPORT (CSV / Excel / TXT / JSON) ============ */
 let importedFile = null; // single file
 let importedRows = null; // parsed rows for preview
 function openImport() {
@@ -1651,6 +1598,7 @@ function detectFileKind(f) {
   if (n.endsWith('.xlsx') || n.endsWith('.xls')) return 'excel';
   if (n.endsWith('.csv')) return 'csv';
   if (n.endsWith('.txt')) return 'txt';
+  if (n.endsWith('.json')) return 'json';
   return 'unknown';
 }
 function fmtBytes(b) {
@@ -1684,6 +1632,7 @@ $('#parseBtn').addEventListener('click', async () => {
 /* ---------- File parsers ---------- */
 async function parseFileToTxns(file) {
   const kind = detectFileKind(file);
+  if (kind === 'json') return parseJsonText(await file.text());
   let rows;
   if (kind === 'excel') rows = await parseExcelFile(file);
   else if (kind === 'csv') rows = parseCsvText(await file.text());
@@ -1693,6 +1642,36 @@ async function parseFileToTxns(file) {
   const detected = detectColumns(rows);
   if (!detected) throw new Error('找不到列头 (Date / Description / Amount)');
   return rowsToTxns(rows, detected);
+}
+
+function parseJsonText(text) {
+  let data;
+  try { data = JSON.parse(text); }
+  catch { throw new Error('JSON 格式不对，检查一下'); }
+  // Accept: [ {...} ] or { transactions: [...] } or { items: [...] } or { data: [...] }
+  let items = null;
+  if (Array.isArray(data)) items = data;
+  else if (data && typeof data === 'object') {
+    items = data.transactions || data.items || data.data || data.records || null;
+    // Also support a single-object JSON that IS one transaction
+    if (!items && (data.amount != null || data.date != null || data.description != null)) items = [data];
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error('JSON 里没找到账目，需要是数组或含 transactions/items');
+  }
+  // Map flexible field names to normalizeItems format
+  const mapped = items.map(it => {
+    if (!it || typeof it !== 'object') return null;
+    const type = String(it.type || it.direction || (Number(it.amount) < 0 ? 'expense' : (it.income ? 'income' : 'expense'))).toLowerCase();
+    return {
+      type: (type === 'income' || type === '收入' || type === 'in' || type === 'credit') ? 'income' : 'expense',
+      category: it.category || it.cat || it.分类 || null,
+      amount: it.amount ?? it.value ?? it.金额 ?? it.sum,
+      date: it.date || it.日期 || it.time || it.datetime,
+      note: it.note || it.description || it.desc || it.merchant || it.备注 || it.description_zh || '',
+    };
+  }).filter(Boolean);
+  return normalizeItems(mapped);
 }
 
 async function parseExcelFile(file) {
@@ -1900,28 +1879,7 @@ function rowsToTxns(rows, detected) {
   return items;
 }
 
-/* ============ AI PARSING (via /api serverless functions) ============ */
-
-async function parseTextToTxns(text) {
-  const res = await fetch('/api/parse-text', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      text,
-      today: fmtDate(new Date()),
-      expense_categories: CATS.expense.map(c => c.key),
-      income_categories: CATS.income.map(c => c.key),
-    }),
-  });
-  if (!res.ok) {
-    let body = null;
-    try { body = await res.json(); } catch {}
-    throw { code: body?.code || (res.status === 401 ? 'no_key' : 'server_error'), message: body?.error };
-  }
-  const data = await res.json();
-  const items = Array.isArray(data) ? data : (data.items || []);
-  return normalizeItems(items);
-}
+/* ============ SHARED NORMALIZER (used by JSON import) ============ */
 
 function normalizeItems(items) {
   const out = [];
@@ -1946,47 +1904,6 @@ function normalizeItems(items) {
     });
   }
   return out;
-}
-
-function naiveTextParse(text) {
-  // very rough fallback if no AI
-  const m = text.match(/(\d+(?:\.\d+)?)/);
-  if (!m) return [];
-  const amt = parseFloat(m[1]);
-  const t = /收入|工资|退款|红包/.test(text) ? 'income' : 'expense';
-  const cats = CATS[t];
-  let cat = '其他';
-  const kws = {
-    '外食': ['吃','饭','餐','麦','肯','早饭','午饭','晚饭','奶茶','咖啡','kopi'],
-    '交通': ['打车','grab','车','油','停车','地铁','公交'],
-    '购物': ['买','shopee','lazada','商场','买了'],
-    '生活': ['水电','房租','日用'],
-    '娱乐': ['电影','游戏','ktv'],
-  };
-  for (const [k, ws] of Object.entries(kws)) {
-    if (ws.some(w => text.includes(w))) { cat = k; break; }
-  }
-  return [{
-    id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
-    type: t, category: cat, amount: amt, note: text.slice(0, 40),
-    date: fmtDate(new Date()), createdAt: Date.now(), include: true,
-  }];
-}
-
-function claudeErrCopy(e) {
-  if (!e) return '出错了';
-  if (e.code === 'no_key') return '服务端没设置 API key';
-  if (e.code === 'rate_limited') return '用得太快啦，稍等一下';
-  if (e.code === 'too_large') return '图片太大，试试拍小张一点';
-  if (e.code === 'refused') return 'AI 拒绝了';
-  if (e.code === 'invalid_json') return 'AI 回复格式不对';
-  if (e.code === 'no_image') return '没有可以解析的图片';
-  if (e.code === 'server_error') {
-    console.error('[Sen] server error:', e);
-    const msg = (e.message || '').replace(/\s+/g, ' ').trim().slice(0, 140);
-    return msg ? '错: ' + msg : '服务端出错';
-  }
-  return '解析失败，试试手动记';
 }
 
 /* ============ PARSED CONFIRM ============ */

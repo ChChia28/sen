@@ -1,74 +1,38 @@
 # Sen · 记账
 
-Single-page mobile-first expense tracker.
+Mobile-first Chinese expense tracker. Pure static site — no backend, no API keys, no cost.
 
 ## Features
 
-- **Calendar view** — daily totals per day, monthly total on last day
-- **Chart view** — pie chart + category breakdown for any month
-- **Manual entry** — big-number amount input, category grid
-- **Voice recording** — speak your expense, AI parses to a structured entry (uses Gemini free tier)
-- **File import** — upload a bank statement or e-wallet CSV / Excel / TXT, auto-detects columns, categorizes by keyword. **No AI, no API cost, no rate limit.**
-- **Local-first** — data lives in browser `localStorage`, private per device
-
-## Stack
-
-- Frontend: single `index.html` (no build step; Chart.js + SheetJS from CDN)
-- Backend: one Vercel serverless function for voice parsing (`/api/parse-text`) calling Google Gemini
+- 📅 **Calendar view** — per-day totals, month total on the last day
+- 📊 **Chart view** — doughnut breakdown + per-category bars, month picker
+- ✍️ **Manual entry** — amount + category, expense or income
+- 📥 **Import from file** — Excel (`.xlsx` / `.xls`), CSV, TXT, JSON
+  - Auto-detects Date / Description / Amount columns (English, Malay, Chinese headers)
+  - Handles Malaysia bank statement formats (Maybank, CIMB, PBB, HL) and e-wallets (TNG, Boost, GrabPay)
+  - Auto-categorizes by keyword (Grab → 交通, McD → 外食, TNB → 生活, etc.)
+- 💾 **JSON backup** — export all data to a file, import it back on any device
+- 🌙 Full offline — data persists in browser `localStorage`
 
 ## Deploy to Vercel
 
-### 1. Get a free Gemini API key (2 min)
+1. Push this folder to a GitHub repo
+2. Go to https://vercel.com/new and import the repo
+3. Deploy — no environment variables needed
 
-- https://aistudio.google.com/apikey → sign in with Google → **Create API key** → copy the `AIza...` string.
+That's it. The whole app is one HTML file.
 
-No credit card, no billing setup.
+## Data & privacy
 
-### 2. Deploy
+Everything stays in the browser. Nothing is sent to any server. To move data between devices:
 
-Push this folder to GitHub, then https://vercel.com/new → import the repo.
+- Tap the ➕ button → 数据备份 → 导出备份 to download a `.json` file
+- On the new device: 数据备份 → 导入备份 to restore
 
-Under **Environment Variables**, add:
+## Using an AI to convert receipts / PDFs to JSON
 
-| Key | Value |
-|---|---|
-| `GEMINI_API_KEY` | your `AIza...` key |
-| `GEMINI_MODEL` | `gemini-flash-latest` |
+Sen doesn't include AI parsing itself (keeps it free and fast). If you want to import a receipt photo or PDF, paste this into ChatGPT / Gemini / Claude with the file attached:
 
-Deploy. Your app is live at `your-project.vercel.app`.
+> Extract every transaction from this receipt / statement and return ONLY a JSON array. Each item must have: `date` (YYYY-MM-DD), `amount` (positive number), `description` (short merchant name), `type` (`"expense"` or `"income"`), `category` (one of: 外食, 交通, 购物, 生活, 娱乐, 医疗, 教育, 通讯, 旅行, 人情, 烟酒, 其他).
 
-## File import — what formats work
-
-The import accepts `.csv`, `.xlsx`, `.xls`, `.txt`. It auto-detects the header row (looks for `Date` / `Description` / `Amount` / `Debit` / `Credit` columns, or their Malay/Chinese equivalents).
-
-Confirmed working with exports from:
-
-- **Maybank M2U** (CSV / Excel statement download)
-- **CIMB Clicks** (CSV export)
-- **Public Bank** (Excel statement)
-- **HL Bank Connect** (CSV)
-- **Touch 'n Go eWallet** (CSV export from Transactions)
-- **Boost** (CSV export)
-- **GrabPay** (Excel export)
-
-For any other bank / wallet: as long as it has columns for date, description, and amount (or separate debit/credit), it should work.
-
-### Category auto-detection
-
-Merchants are matched to categories using a Malaysia-focused keyword database — Grab → 交通, McD → 外食, TNB → 生活, Shopee → 购物, and so on. Anything unmatched falls into 其他 and you can tap-toggle it in the confirm screen.
-
-## Share with friends
-
-Send them the Vercel URL. Each person's data stays on their own phone. Only voice recording touches your Gemini quota (250 requests/day on free tier — plenty for a small group).
-
-## Structure
-
-```
-.
-├── index.html            # The whole app
-├── api/
-│   └── parse-text.js     # POST /api/parse-text (voice → transactions)
-├── package.json
-├── vercel.json
-└── .gitignore
-```
+Save the reply as `statement.json` and upload it via 导入账单.
