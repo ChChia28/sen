@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#ffffff">
 <title>Sen · 记账</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
     --bg: #ffffff;
@@ -921,7 +921,7 @@
       </div>
       <div class="add-opt-body">
         <div class="add-opt-title">导入账单</div>
-        <div class="add-opt-sub">上传收据 / 账单截图 / PDF</div>
+        <div class="add-opt-sub">上传 Excel / CSV 账单，自动记账</div>
       </div>
     </button>
   </div>
@@ -994,28 +994,19 @@
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
       </svg>
       <div class="drop-zone-title">拖到这里，或选择文件</div>
-      <div class="drop-zone-sub">支持图片、PDF 账单/收据</div>
+      <div class="drop-zone-sub">支持 Excel (.xlsx) / CSV / TXT 账单导出</div>
     </div>
-    <div class="file-buttons">
-      <label class="file-btn" for="imgInput">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span>相册</span>
-      </label>
-      <label class="file-btn" for="camInput">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        <span>拍照</span>
-      </label>
-      <label class="file-btn" for="pdfInput">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <span>PDF</span>
-      </label>
+    <label class="file-btn" for="fileInput" style="width:100%; padding:14px; margin: 0 0 12px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>选择文件</span>
+    </label>
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.txt,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none">
+    <div style="font-size:12px; color:var(--text-2); background:var(--card-2); padding:12px 14px; border-radius:12px; margin-bottom:16px; line-height:1.55;">
+      💡 大部分银行 (Maybank M2U、CIMB Clicks、PBB、HL) 和电子钱包 (TNG、Boost、GrabPay) 都能导出 CSV / Excel 账单。上传后自动识别日期、商家、金额，按关键词分类。
     </div>
-    <input type="file" id="imgInput" accept="image/*" multiple style="display:none">
-    <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none">
-    <input type="file" id="pdfInput" accept="application/pdf" style="display:none">
     <div class="file-preview" id="filePreview"></div>
     <button class="parse-btn" id="parseBtn" disabled>
-      <span id="parseBtnText">AI 解析账单</span>
+      <span id="parseBtnText">读取账单</span>
     </button>
   </div>
 </div>
@@ -1058,13 +1049,6 @@
 </div>
 
 <div class="toast" id="toast"></div>
-
-<script type="module">
-  // Set up pdf.js worker
-  import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs';
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
-  window.__pdfjs = pdfjsLib;
-</script>
 
 <script>
 /* ============ CATEGORIES ============ */
@@ -1616,128 +1600,304 @@ $('#voiceParse').addEventListener('click', async () => {
   }
 });
 
-/* ============ IMPORT ============ */
-let importFiles = []; // {file, kind: 'image'|'pdf', preview?}
+/* ============ IMPORT (CSV / Excel / TXT) ============ */
+let importedFile = null; // single file
+let importedRows = null; // parsed rows for preview
 function openImport() {
-  importFiles = [];
+  importedFile = null;
+  importedRows = null;
   $('#filePreview').innerHTML = '';
   $('#parseBtn').disabled = true;
-  $('#parseBtnText').textContent = 'AI 解析账单';
+  $('#parseBtnText').textContent = '读取账单';
+  $('#dropZone').classList.remove('drag');
   openSheet('sheetImport');
 }
-['imgInput','camInput'].forEach(id => {
-  $('#'+id).addEventListener('change', (e) => {
-    const files = [...e.target.files];
-    files.forEach(f => importFiles.push({ file: f, kind: 'image' }));
-    e.target.value = '';
-    renderFilePreview();
-  });
-});
-$('#pdfInput').addEventListener('change', (e) => {
+$('#fileInput').addEventListener('change', (e) => {
   const f = e.target.files[0];
-  if (f) importFiles.push({ file: f, kind: 'pdf' });
   e.target.value = '';
-  renderFilePreview();
+  if (f) handleFilePicked(f);
 });
 // Drag & drop
 const dz = $('#dropZone');
 ;['dragover','dragenter'].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag'); }));
 ;['dragleave','drop'].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('drag'); }));
 dz.addEventListener('drop', (e) => {
-  const files = [...(e.dataTransfer?.files || [])];
-  files.forEach(f => {
-    if (f.type === 'application/pdf') importFiles.push({ file: f, kind: 'pdf' });
-    else if (f.type.startsWith('image/')) importFiles.push({ file: f, kind: 'image' });
-  });
-  renderFilePreview();
+  const f = e.dataTransfer?.files?.[0];
+  if (f) handleFilePicked(f);
 });
+dz.addEventListener('click', () => $('#fileInput').click());
 
-function renderFilePreview() {
+async function handleFilePicked(f) {
+  importedFile = f;
+  importedRows = null;
+  const kind = detectFileKind(f);
   const wrap = $('#filePreview');
-  wrap.innerHTML = '';
-  importFiles.forEach((it, idx) => {
-    if (it.kind === 'image') {
-      const url = URL.createObjectURL(it.file);
-      const row = document.createElement('div');
-      row.className = 'file-info';
-      row.innerHTML = `<img src="${url}" style="width:44px; height:44px; object-fit:cover; border-radius:8px;">
-        <div class="file-info-name">${it.file.name}</div>
-        <button class="file-info-remove" data-i="${idx}">×</button>`;
-      wrap.appendChild(row);
-    } else {
-      const row = document.createElement('div');
-      row.className = 'file-info';
-      row.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <div class="file-info-name">${it.file.name}</div>
-        <button class="file-info-remove" data-i="${idx}">×</button>`;
-      wrap.appendChild(row);
-    }
+  wrap.innerHTML = `<div class="file-info">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <div class="file-info-name">${escapeHtml(f.name)}<div style="font-size:11px; color:var(--text-3); margin-top:2px;">${kind.toUpperCase()} · ${fmtBytes(f.size)}</div></div>
+    <button class="file-info-remove" id="fileClear">×</button>
+  </div>`;
+  $('#fileClear').addEventListener('click', () => {
+    importedFile = null;
+    importedRows = null;
+    $('#filePreview').innerHTML = '';
+    $('#parseBtn').disabled = true;
   });
-  $$('.file-info-remove', wrap).forEach(b => {
-    b.addEventListener('click', () => {
-      importFiles.splice(+b.dataset.i, 1);
-      renderFilePreview();
-    });
-  });
-  $('#parseBtn').disabled = importFiles.length === 0;
+  $('#parseBtn').disabled = false;
 }
 
+function detectFileKind(f) {
+  const n = f.name.toLowerCase();
+  if (n.endsWith('.xlsx') || n.endsWith('.xls')) return 'excel';
+  if (n.endsWith('.csv')) return 'csv';
+  if (n.endsWith('.txt')) return 'txt';
+  return 'unknown';
+}
+function fmtBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/1024/1024).toFixed(1) + ' MB';
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 $('#parseBtn').addEventListener('click', async () => {
-  if (importFiles.length === 0) return;
+  if (!importedFile) return;
   $('#parseBtn').disabled = true;
   $('#parseBtnText').innerHTML = '<span class="spinner"></span> 正在读账单…';
   try {
-    // Convert PDFs to image blobs (page 1..N up to 3)
-    const images = [];
-    for (const it of importFiles) {
-      if (it.kind === 'image') {
-        images.push(it.file);
-      } else {
-        // pdf
-        const blobs = await pdfToImages(it.file, 5);
-        blobs.forEach(b => images.push(b));
-      }
-    }
-    if (images.length === 0) throw { code: 'no_image' };
-    const items = await parseImagesToTxns(images);
-    $('#parseBtnText').textContent = 'AI 解析账单';
+    const items = await parseFileToTxns(importedFile);
+    $('#parseBtnText').textContent = '读取账单';
     $('#parseBtn').disabled = false;
-    if (!items || items.length === 0) return toast('没解析出账目');
+    if (!items || items.length === 0) {
+      return toast('文件里没找到账目，试试检查列头是不是 Date/Description/Amount');
+    }
     closeSheet('sheetImport');
     setTimeout(() => showParsed(items), 250);
   } catch (e) {
     console.error(e);
-    $('#parseBtnText').textContent = 'AI 解析账单';
+    $('#parseBtnText').textContent = '读取账单';
     $('#parseBtn').disabled = false;
-    toast(claudeErrCopy(e));
+    toast(e?.message || '读取失败');
   }
 });
 
-async function pdfToImages(file, maxPages = 3) {
-  const pdfjs = window.__pdfjs;
-  if (!pdfjs) throw new Error('pdf.js not ready');
+/* ---------- File parsers ---------- */
+async function parseFileToTxns(file) {
+  const kind = detectFileKind(file);
+  let rows;
+  if (kind === 'excel') rows = await parseExcelFile(file);
+  else if (kind === 'csv') rows = parseCsvText(await file.text());
+  else if (kind === 'txt') rows = parseTxtText(await file.text());
+  else throw new Error('不支持这个文件类型');
+  if (!rows || rows.length === 0) throw new Error('文件是空的');
+  const detected = detectColumns(rows);
+  if (!detected) throw new Error('找不到列头 (Date / Description / Amount)');
+  return rowsToTxns(rows, detected);
+}
+
+async function parseExcelFile(file) {
+  const XLSX = window.XLSX;
+  if (!XLSX) throw new Error('Excel 解析库没加载');
   const buf = await file.arrayBuffer();
-  const doc = await pdfjs.getDocument({ data: buf }).promise;
-  const n = Math.min(doc.numPages, maxPages);
-  const blobs = [];
-  for (let i = 1; i <= n; i++) {
-    const page = await doc.getPage(i);
-    const viewport = page.getViewport({ scale: 1.6 });
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.min(viewport.width, 1600);
-    canvas.height = Math.min(viewport.height, 1600);
-    const ratio = Math.min(canvas.width / viewport.width, canvas.height / viewport.height);
-    const scaled = page.getViewport({ scale: 1.6 * ratio });
-    canvas.width = scaled.width;
-    canvas.height = scaled.height;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    await page.render({ canvasContext: ctx, viewport: scaled }).promise;
-    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
-    if (blob) blobs.push(blob);
+  const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+}
+
+function parseCsvText(text) {
+  const lines = text.split(/\r?\n/);
+  return lines.map(parseCsvLine).filter(r => r.some(c => String(c).trim()));
+}
+function parseCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (c === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += c;
+    }
   }
-  return blobs;
+  result.push(current);
+  return result;
+}
+function parseTxtText(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  // detect delimiter: tab, then 2+ spaces, then | 
+  const sample = lines.slice(0, 5).join('\n');
+  let delim;
+  if (sample.includes('\t')) delim = /\t/;
+  else if (sample.includes('|')) delim = /\s*\|\s*/;
+  else delim = /\s{2,}/;
+  return lines.map(l => l.split(delim));
+}
+
+/* ---------- Column detection ---------- */
+const COL_PATTERNS = {
+  date: /^(transaction[\s_-]?)?(post(ing)?[\s_-]?)?(trans\.?[\s_-]?)?(value[\s_-]?)?(date|tarikh|日期|时间|交易日期)/i,
+  desc: /(description|narration|details?|remark|memo|particular|merchant|transaction[\s_-]?description|详情|备注|商家|摘要|说明|交易描述)/i,
+  amount: /^((transaction|txn)[\s_-]?)?(amount|jumlah|金额|数额)$/i,
+  debit: /(debit|withdrawal|支出|out|dr\.?)/i,
+  credit: /(credit|deposit|收入|in|cr\.?)/i,
+};
+function detectColumns(rows) {
+  for (let i = 0; i < Math.min(20, rows.length); i++) {
+    const row = rows[i];
+    if (!row || row.length < 2) continue;
+    const cols = {};
+    row.forEach((cell, idx) => {
+      const s = String(cell || '').trim();
+      if (!s) return;
+      for (const [key, pattern] of Object.entries(COL_PATTERNS)) {
+        if (cols[key] == null && pattern.test(s)) {
+          cols[key] = idx;
+          break;
+        }
+      }
+    });
+    if (cols.date != null && (cols.amount != null || cols.debit != null || cols.credit != null)) {
+      return { headerRow: i, cols };
+    }
+  }
+  return null;
+}
+
+/* ---------- Date & amount parsers ---------- */
+function parseFlexDate(v) {
+  if (v == null || v === '') return null;
+  if (v instanceof Date && !isNaN(v.getTime())) return fmtDate(v);
+  const s = String(v).trim();
+  if (!s) return null;
+  // Excel serial number (rough)
+  if (/^\d{5}(\.\d+)?$/.test(s)) {
+    const n = parseFloat(s);
+    const d = new Date(Math.round((n - 25569) * 86400 * 1000));
+    if (d.getFullYear() > 1990 && d.getFullYear() < 2100) return fmtDate(d);
+  }
+  // YYYY-MM-DD or YYYY/MM/DD
+  let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  // DD-MM-YYYY or DD/MM/YYYY (Malaysia common)
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  // DD-MM-YY
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})(?!\d)/);
+  if (m) {
+    const yy = parseInt(m[3]);
+    const yyyy = yy < 70 ? 2000 + yy : 1900 + yy;
+    return `${yyyy}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  }
+  // DD MMM YYYY (e.g. "05 Sep 2026")
+  m = s.match(/^(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4})/i);
+  if (m) {
+    const months = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+    const mm = months[m[2].toLowerCase()];
+    return `${m[3]}-${String(mm).padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  }
+  // Native parse as last resort
+  const d = new Date(s);
+  if (!isNaN(d.getTime()) && d.getFullYear() > 1990) return fmtDate(d);
+  return null;
+}
+function parseAmount(v) {
+  if (v == null || v === '') return null;
+  let s = String(v).trim();
+  if (!s) return null;
+  // Handle "1,234.56" and "(1,234.56)" (parentheses = negative in some formats)
+  let neg = false;
+  if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+  if (s.endsWith('DR') || s.endsWith('CR')) {
+    if (s.endsWith('DR')) neg = true;
+    s = s.slice(0, -2).trim();
+  }
+  const clean = s.replace(/[^\d.\-]/g, '');
+  if (!clean || clean === '-' || clean === '.') return null;
+  let n = parseFloat(clean);
+  if (isNaN(n)) return null;
+  if (neg) n = -Math.abs(n);
+  return n;
+}
+
+/* ---------- Category keyword matcher (Malaysia focus) ---------- */
+const KW_EXPENSE = {
+  外食: ['mcdonald','mcd','kfc','starbucks','kopitiam','restoran','restaurant','cafe','food','mamak','subway','burger','pizza','dominos','secret recipe','oldtown','chatime','tealive','llaollao','family mart','familymart','7-eleven','7eleven','kopi','bakery','nasi','roti','ayam','teh tarik','sushi','ramen','grabfood','foodpanda','shoyu','tealive','zus','yi fang'],
+  交通: ['grab','grabcar','mycar','petronas','shell','caltex','bhpetrol','bh petrol','touch n go','tng reload','plus toll','toll','mrt','lrt','ktm','parking','myrapid','rapid kl','bus','taxi','ehailing','airasia ride','sewa kereta','maxim'],
+  购物: ['shopee','lazada','zalora','uniqlo','h&m','ikea','mydin','tesco','aeon','lotus','giant','speedmart','sephora','padini','brands outlet','pandora','mr diy','daiso','popular'],
+  生活: ['tnb','iwk','syabas','air selangor','astro','rent','sewa','indah water','pngb'],
+  娱乐: ['netflix','spotify','youtube premium','disney+','disney plus','gsc','tgv','mbo','mm2','cinema','karaoke','ktv','steam','playstation','xbox nintendo'],
+  医疗: ['klinik','pharmacy','watsons','guardian','caring pharmacy','hospital','apotek','panel klinik','clinic','dental'],
+  教育: ['mph','kinokuniya','coursera','udemy','tuition','buku','textbook'],
+  通讯: ['maxis','celcom','digi','umobile','u mobile','yes 4g','unifi','streamyx','hotlink','xpax','onexox','redone'],
+  旅行: ['airasia','malaysia airlines','mas ','batik air','agoda','booking.com','expedia','airbnb','trip.com','hotel','klook'],
+  烟酒: ['carlsberg','tiger beer','heineken','marlboro','dunhill','tobacco','liquor'],
+};
+const KW_INCOME = {
+  工资: ['salary','gaji','payroll','wage','monthly','mthly'],
+  兼职: ['freelance','commission','komisyen','part time','parttime'],
+  红包: ['ang pow','angpow'],
+  退款: ['refund','reversal','pemulangan','chargeback'],
+  理财: ['dividend','interest','kwsp','epf','bonus','faedah'],
+};
+function categorize(desc, isIncome) {
+  const s = String(desc || '').toLowerCase();
+  const map = isIncome ? KW_INCOME : KW_EXPENSE;
+  for (const [cat, kws] of Object.entries(map)) {
+    for (const kw of kws) {
+      if (s.includes(kw)) return cat;
+    }
+  }
+  return '其他';
+}
+
+/* ---------- Rows → transactions ---------- */
+function rowsToTxns(rows, detected) {
+  const { cols, headerRow } = detected;
+  const items = [];
+  const today = fmtDate(new Date());
+  for (let i = headerRow + 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0) continue;
+    // Skip rows that look like totals/summary
+    const asStr = row.map(c => String(c || '').trim()).join(' ').toLowerCase();
+    if (!asStr) continue;
+    if (/^(total|subtotal|balance|closing|opening|jumlah|end(ing)? bal)/i.test(String(row[cols.desc] ?? row[cols.date] ?? ''))) continue;
+
+    const dateStr = parseFlexDate(row[cols.date]);
+    const desc = String(row[cols.desc] ?? '').trim();
+
+    let amount = null, type = null;
+    if (cols.debit != null || cols.credit != null) {
+      const debit = parseAmount(row[cols.debit]);
+      const credit = parseAmount(row[cols.credit]);
+      if (debit && Math.abs(debit) > 0.001) { amount = Math.abs(debit); type = 'expense'; }
+      else if (credit && Math.abs(credit) > 0.001) { amount = Math.abs(credit); type = 'income'; }
+    } else if (cols.amount != null) {
+      const amt = parseAmount(row[cols.amount]);
+      if (amt != null && Math.abs(amt) > 0.001) {
+        amount = Math.abs(amt);
+        type = amt < 0 ? 'expense' : 'income';
+      }
+    }
+    if (amount == null || !type) continue;
+    if (!dateStr && !desc) continue;
+
+    const category = categorize(desc, type === 'income');
+    items.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
+      type, category, amount,
+      note: desc.slice(0, 60),
+      date: dateStr || today,
+      createdAt: Date.now(),
+      include: true,
+    });
+  }
+  return items;
 }
 
 /* ============ AI PARSING (via /api serverless functions) ============ */
@@ -1761,60 +1921,6 @@ async function parseTextToTxns(text) {
   const data = await res.json();
   const items = Array.isArray(data) ? data : (data.items || []);
   return normalizeItems(items);
-}
-
-async function parseImagesToTxns(blobs) {
-  // Resize images client-side to keep request small
-  const images = [];
-  const use = blobs.slice(0, 4); // cap at 4 to stay within serverless body limits
-  for (const b of use) {
-    const enc = await resizeBlobToBase64Jpeg(b, 1400, 0.85);
-    images.push(enc);
-  }
-  const res = await fetch('/api/parse-images', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      images,
-      today: fmtDate(new Date()),
-      expense_categories: CATS.expense.map(c => c.key),
-      income_categories: CATS.income.map(c => c.key),
-    }),
-  });
-  if (!res.ok) {
-    let body = null;
-    try { body = await res.json(); } catch {}
-    throw { code: body?.code || (res.status === 401 ? 'no_key' : res.status === 413 ? 'too_large' : 'server_error'), message: body?.error };
-  }
-  const data = await res.json();
-  const items = Array.isArray(data) ? data : (data.items || []);
-  return normalizeItems(items);
-}
-
-async function resizeBlobToBase64Jpeg(blob, maxDim = 1400, quality = 0.85) {
-  const img = await createImageBitmap(blob);
-  let w = img.width, h = img.height;
-  const longest = Math.max(w, h);
-  if (longest > maxDim) {
-    const r = maxDim / longest;
-    w = Math.round(w * r);
-    h = Math.round(h * r);
-  }
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(img, 0, 0, w, h);
-  const outBlob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
-  const buf = await outBlob.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-  }
-  return { media_type: 'image/jpeg', data: btoa(binary) };
 }
 
 function normalizeItems(items) {
