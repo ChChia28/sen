@@ -1,13 +1,13 @@
 {
-  "name": "jizhang",
+  "name": "sen",
   "version": "1.0.0",
   "private": true,
-  "description": "记账 - Voice & receipt-based expense tracker (Gemini backend)",
+  "description": "Sen — voice & receipt-based expense tracker",
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@google/genai": "^2.0.0"
+    "@google/genai": "^2.23.0"
   }
 }

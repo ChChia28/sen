@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<title>记账</title>
+<title>Sen · 记账</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
 <style>
@@ -741,14 +741,17 @@
     transform: translateX(-50%) translateY(20px);
     background: rgba(0,0,0,.82);
     color: white;
-    padding: 10px 18px;
-    border-radius: 22px;
+    padding: 12px 18px;
+    border-radius: 18px;
     font-size: 13px;
+    line-height: 1.4;
     opacity: 0;
     pointer-events: none;
     transition: opacity .22s, transform .22s;
     z-index: 200;
-    white-space: nowrap;
+    max-width: 82%;
+    word-break: break-word;
+    text-align: center;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -1146,12 +1149,13 @@ function fmtShort(n) {
   return v.toFixed(v % 1 ? 2 : 0);
 }
 const WEEK_ZH = ['日','一','二','三','四','五','六'];
-function toast(msg, ms=1800) {
+function toast(msg, ms) {
   const t = $('#toast');
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => t.classList.remove('show'), ms);
+  const dur = ms || (msg.length > 30 ? 5000 : 1800);
+  toast._t = setTimeout(() => t.classList.remove('show'), dur);
 }
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
@@ -1865,13 +1869,17 @@ function naiveTextParse(text) {
 
 function claudeErrCopy(e) {
   if (!e) return '出错了';
-  if (e.code === 'no_key') return '服务端没设置 API key，看 README';
+  if (e.code === 'no_key') return '服务端没设置 API key';
   if (e.code === 'rate_limited') return '用得太快啦，稍等一下';
   if (e.code === 'too_large') return '图片太大，试试拍小张一点';
-  if (e.code === 'refused') return 'AI 拒绝了这个请求';
-  if (e.code === 'invalid_json') return 'AI 回复格式不对，再试一次';
-  if (e.code === 'server_error') return '服务端出错了，看看控制台';
+  if (e.code === 'refused') return 'AI 拒绝了';
+  if (e.code === 'invalid_json') return 'AI 回复格式不对';
   if (e.code === 'no_image') return '没有可以解析的图片';
+  if (e.code === 'server_error') {
+    console.error('[Sen] server error:', e);
+    const msg = (e.message || '').replace(/\s+/g, ' ').trim().slice(0, 140);
+    return msg ? '错: ' + msg : '服务端出错';
+  }
   return '解析失败，试试手动记';
 }
 
