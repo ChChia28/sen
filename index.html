@@ -807,6 +807,105 @@
     background: var(--accent);
   }
 
+  /* ============== CATEGORY DETAIL (drill-down) ============== */
+  .cat-row {
+    cursor: pointer;
+    transition: background .15s;
+    border-radius: 12px;
+  }
+  .cat-row:active {
+    background: var(--card-2);
+  }
+  .cat-chevron {
+    width: 14px; height: 14px;
+    color: var(--text-3);
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+  .chart-budget-item {
+    cursor: pointer;
+    transition: transform .1s;
+  }
+  .chart-budget-item:active {
+    transform: scale(.98);
+  }
+  .cd-hero {
+    padding: 12px 20px 20px;
+    display: flex; align-items: center; gap: 14px;
+    border-bottom: 1px solid var(--card-2);
+  }
+  .cd-hero-icon {
+    width: 54px; height: 54px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; flex-shrink: 0;
+  }
+  .cd-hero-info {
+    flex: 1; min-width: 0;
+  }
+  .cd-hero-name {
+    font-size: 18px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .cd-hero-sub {
+    font-size: 12px; color: var(--text-3);
+    margin-top: 2px;
+  }
+  .cd-hero-amount {
+    font-size: 22px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.5px;
+    text-align: right;
+  }
+  .cd-hero-count {
+    font-size: 11px; color: var(--text-3);
+    text-align: right;
+    margin-top: 2px;
+  }
+  .cd-list {
+    padding: 8px 0 40px;
+    max-height: calc(92vh - 130px);
+    overflow-y: auto;
+  }
+  .cd-item {
+    display: flex; align-items: center;
+    padding: 12px 20px;
+    gap: 12px;
+    cursor: pointer;
+    transition: background .1s;
+  }
+  .cd-item:active { background: var(--card-2); }
+  .cd-item-date {
+    font-size: 11px; color: var(--text-3);
+    width: 52px; flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+  }
+  .cd-item-date b {
+    display: block; font-size: 14px;
+    font-weight: 700; color: var(--text-1);
+  }
+  .cd-item-body {
+    flex: 1; min-width: 0;
+  }
+  .cd-item-note {
+    font-size: 14px; font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cd-item-note.empty { color: var(--text-3); font-weight: 400; }
+  .cd-item-amt {
+    font-size: 15px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .cd-item-amt.income { color: var(--income); }
+  .cd-day-header {
+    padding: 12px 20px 4px;
+    font-size: 11px; color: var(--text-3);
+    font-weight: 600;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+  }
+
   /* ============== SEARCH ============== */
   .search-input-wrap {
     position: relative;
@@ -1312,6 +1411,18 @@
   </div>
 </div>
 
+<!-- Category detail (drill-down from breakdown) -->
+<div class="sheet sheet-full" id="sheetCatDetail">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="sheet-close" data-close>关闭</button>
+    <div class="sheet-title" id="cdTitle">分类</div>
+    <span style="width:40px;"></span>
+  </div>
+  <div class="cd-hero" id="cdHero"></div>
+  <div class="cd-list" id="cdList"></div>
+</div>
+
 <!-- Edit ONE parsed item (before saving batch) -->
 <div class="sheet" id="sheetParsedEdit">
   <div class="sheet-handle"></div>
@@ -1771,7 +1882,7 @@ function renderChart() {
   bd.innerHTML = sorted.map(([k, v]) => {
     const c = getCat(k, 'expense');
     const pct = totalExp > 0 ? (v / totalExp * 100) : 0;
-    return `<div class="cat-row">
+    return `<div class="cat-row" data-cat="${k}">
       <div class="cat-dot" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
       <div class="cat-info">
         <div class="cat-name">${k}</div>
@@ -1781,6 +1892,7 @@ function renderChart() {
         <div class="cat-val-amt">${cur()} ${fmtShort(v)}</div>
         <div class="cat-val-pct">${pct.toFixed(1)}%</div>
       </div>
+      <svg class="cat-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
     </div>`;
   }).join('');
 
@@ -1799,7 +1911,7 @@ function renderChart() {
         const pct = Math.min(100, (sp / b) * 100);
         const over = sp > b;
         const cls = over ? 'over' : (pct >= 80 ? 'warn' : '');
-        return `<div class="chart-budget-item">
+        return `<div class="chart-budget-item" data-cat="${k}">
           <div class="chart-budget-item-head">
             <div class="chart-budget-item-name">
               <div class="chart-budget-item-name-icon" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
@@ -1813,10 +1925,18 @@ function renderChart() {
     `;
     bd.insertAdjacentHTML('beforeend', budgetHtml);
   }
+
+  // Wire drill-down clicks on category rows and budget cards
+  $$('.cat-row[data-cat]', bd).forEach(el => {
+    el.addEventListener('click', () => openCatDetail(el.dataset.cat, 'expense'));
+  });
+  $$('.chart-budget-item[data-cat]', bd).forEach(el => {
+    el.addEventListener('click', () => openCatDetail(el.dataset.cat, 'expense'));
+  });
 }
 
 /* ============ SHEETS ============ */
-const sheets = ['sheetAdd', 'sheetManual', 'sheetImport', 'sheetBackup', 'sheetParsed', 'sheetParsedEdit', 'sheetEditCat', 'sheetSearch', 'sheetBudget', 'sheetSettings', 'sheetMonth', 'sheetTxn'];
+const sheets = ['sheetAdd', 'sheetManual', 'sheetImport', 'sheetBackup', 'sheetParsed', 'sheetParsedEdit', 'sheetEditCat', 'sheetSearch', 'sheetBudget', 'sheetSettings', 'sheetCatDetail', 'sheetMonth', 'sheetTxn'];
 let sheetStack = [];
 function openSheet(id) {
   $('#sheetMask').classList.add('show');
@@ -3172,12 +3292,94 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* ============ CATEGORY DETAIL (drill-down from breakdown) ============ */
+let cdState = null; // { category, type, monthPrefix }
+function openCatDetail(category, type='expense') {
+  const monthPrefix = `${cursorYear}-${String(cursorMonth+1).padStart(2,'0')}`;
+  cdState = { category, type, monthPrefix };
+  renderCatDetail();
+  openSheet('sheetCatDetail');
+}
+function renderCatDetail() {
+  const { category, type, monthPrefix } = cdState;
+  const c = getCat(category, type);
+  const txns = state.transactions
+    .filter(t => t.type === type && t.category === category && t.date.startsWith(monthPrefix))
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
+  const total = txns.reduce((s, t) => s + Number(t.amount), 0);
+  const monthLabel = `${cursorYear} / ${String(cursorMonth+1).padStart(2,'0')}`;
+  const budget = type === 'expense' ? Number(state.settings.budgets[category] || 0) : 0;
+  const budgetLine = budget > 0
+    ? ` <span style="font-size:11px; color:var(--text-3); font-weight:400; margin-left:6px;">/ ${cur()} ${fmtShort(budget)} 预算</span>`
+    : '';
+
+  $('#cdTitle').textContent = category;
+  $('#cdHero').innerHTML = `
+    <div class="cd-hero-icon" style="background:${c.color}22; color:${c.color}">${c.icon}</div>
+    <div class="cd-hero-info">
+      <div class="cd-hero-name">${category}${budgetLine}</div>
+      <div class="cd-hero-sub">${monthLabel} · ${type === 'income' ? '收入' : '支出'}</div>
+    </div>
+    <div>
+      <div class="cd-hero-amount ${type === 'income' ? 'income-color' : ''}" style="${type === 'income' ? 'color:var(--income);' : ''}">${type === 'income' ? '+' : ''}${cur()} ${fmtShort(total)}</div>
+      <div class="cd-hero-count">${txns.length} 笔</div>
+    </div>
+  `;
+
+  const list = $('#cdList');
+  if (txns.length === 0) {
+    list.innerHTML = `<div class="empty-state" style="padding:60px 20px;"><div class="empty-state-big">·</div><div class="empty-state-sub">本月还没有${category}的账</div></div>`;
+    return;
+  }
+
+  // Group by date
+  const grouped = {};
+  txns.forEach(t => {
+    if (!grouped[t.date]) grouped[t.date] = [];
+    grouped[t.date].push(t);
+  });
+  const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+  const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
+  list.innerHTML = sortedDates.map(date => {
+    const d = parseDate(date);
+    const dayNum = d.getDate();
+    const wd = weekdays[d.getDay()];
+    const dayTotal = grouped[date].reduce((s, t) => s + Number(t.amount), 0);
+    const items = grouped[date].map(t => {
+      const emptyNote = !t.note;
+      return `<div class="cd-item" data-id="${t.id}">
+        <div class="cd-item-date">
+          <b>${String(dayNum).padStart(2,'0')}</b>${wd}
+        </div>
+        <div class="cd-item-body">
+          <div class="cd-item-note ${emptyNote ? 'empty' : ''}">${emptyNote ? '(无备注)' : escapeHtml(t.note)}</div>
+        </div>
+        <div class="cd-item-amt ${type === 'income' ? 'income' : ''}">${type === 'income' ? '+' : ''}${cur()} ${fmtShort(t.amount)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="cd-day-header">${date} · ${wd} · ${cur()} ${fmtShort(dayTotal)}</div>${items}`;
+  }).join('');
+
+  $$('.cd-item', list).forEach(el => {
+    el.addEventListener('click', () => {
+      // Close cat-detail then open txn actions (so back returns nicely)
+      closeSheet('sheetCatDetail');
+      setTimeout(() => openTxnActions(el.dataset.id), 200);
+    });
+  });
+}
+
 /* ============ RENDER ALL ============ */
 function renderAll() {
   renderHeader();
   renderCalendar();
   renderDayDetail();
   if (currentView === 'chart') renderChart();
+  // If a category detail sheet is open, refresh it too
+  if (cdState && $('#sheetCatDetail').classList.contains('show')) {
+    renderCatDetail();
+  }
 }
 renderAll();
 </script>

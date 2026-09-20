@@ -1,4 +1,4 @@
-const CACHE = 'sen-v1.3.0';
+const CACHE = 'sen-v1.3.1';
 const CORE = [
   '/',
   '/index.html',
